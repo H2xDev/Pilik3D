@@ -3,7 +3,7 @@
 Pure JS, non-webgl, zero-dependencies 3D Rendering Engine
 
 <p align="center">
-<img src="/sceenshots/screenshot.png" alt="Screenshot" />
+<img src="https://github.com/H2xDev/Pilik3D/blob/master/screenshots/screenshot.png?raw=true" alt="Screenshot" />
 </p>
 
 ## Features
