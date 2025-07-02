@@ -28,7 +28,6 @@ export class Basis {
   }
 
   get inverse() {
-    // Транспонируем базис (если он ортогонален), затем применяем обратный масштаб
     return new Basis(
       new Vec3(this.x.x, this.y.x, this.z.x),
       new Vec3(this.x.y, this.y.y, this.z.y),
