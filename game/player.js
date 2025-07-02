@@ -108,7 +108,7 @@ export class Player extends GNode3D {
 
     this.modelBasis = Object.assign(Basis.IDENTITY, { up: normal });
     this.model.basis = this.model.basis.slerp(this.modelBasis, dt * 10);
-    this.model.basis.rotate(this.model.basis.forward, this.turnValue * -0.025 * Math.PI / 2); 
+    this.model.basis.rotate(this.basis.forward, this.turnValue * 0.025 * Math.PI / 2); 
     this.model.basis.scale = new Vec3(0.125, 0.125, 0.125);
 
     const targetPos = Math.max(targetY, this.position.y);

@@ -67,7 +67,7 @@ export class Camera3D extends GNode3D {
     const lightShining = Math.pow(Math.max(0, polygon.normal.dot(lightDir)), 3) * percent;
       
     // Debug light position
-    this.drawLine(lightPos, lightPos.add(Vec3.UP).mul(0.1), Color.RED);
+    this.drawLine(lightPos, lightPos.add(Vec3.UP).mul(0.1), light.color);
 
     return inColor.add(light.color.mul(lightShining));
   }

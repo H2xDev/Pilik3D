@@ -34,12 +34,12 @@ export const GameScene = new class extends Scene {
 
   process(deltaTime) {
     this.light.position = Vec3.UP.mul(0.5)
-    this.light.position.x = Math.sin(this.frame / 100) * 1.0;
-    this.light.position.z = Math.cos(this.frame / 100) * 1.0;
+    this.light.position.x = Math.sin(Date.now() / 1000) * 1.0;
+    this.light.position.z = Math.cos(Date.now() / 1000) * 1.0;
     
     this.light2.position = Vec3.UP.mul(0.5)
-    this.light2.position.x = Math.cos(this.frame / 30) * 1.0;
-    this.light2.position.z = Math.sin(this.frame / 30) * 1.0;
+    this.light2.position.x = Math.cos(Date.now() / 300) * 1.0;
+    this.light2.position.z = Math.sin(Date.now() / 300) * 1.0;
   }
 
   /**
@@ -49,23 +49,5 @@ export const GameScene = new class extends Scene {
   bg(deltaTime, ctx) {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  }
-
-  /**
-    * @param { number } deltaTime - Delta time in seconds.
-    * @param { CanvasRenderingContext2D } ctx - The rendering context.
-    */
-  gui(deltaTime, ctx) {
-    this.fpsSumCounter += deltaTime;
-    this.frame++;
-
-    if (this.frame % EACH_FRAME === 0) {
-      this.fps = 1 / (this.fpsSumCounter / EACH_FRAME);
-      this.fpsSumCounter = 0;
-    }
-
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.fillText(`FPS: ${this.fps.toFixed(2)}`, 10, 32);
   }
 }
