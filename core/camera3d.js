@@ -93,15 +93,15 @@ export class Camera3D extends GNode3D {
     return color
   }
 
-	process(dt, ctx) {
+  process(dt, ctx) {
     this.ctx = ctx;
     this.perspective = (ctx.canvas.height / 2) / Math.tan(this.fov * DEG_TO_RAD / 2)
 
     const geometries = this.getAllGeometryNodes(this.scene);
     const lights = this.getAllLightNodes(this.scene);
 
-		geometries
-			.flatMap(({ polygons, renderTransform: nodeTransform }) => polygons.map(polygon => {
+    geometries
+      .flatMap(({ polygons, renderTransform: nodeTransform }) => polygons.map(polygon => {
         polygon = polygon.applyTransform(nodeTransform);
         const d1 = polygon.v1.sub(this.transform.position).dot(this.transform.basis.forward);
         if (d1 < 0) return null;
@@ -116,12 +116,12 @@ export class Camera3D extends GNode3D {
 
         return polygon.applyTransform(this.transform.inverse);
       }))
-			.filter(Boolean)
-			.sort((a, b) => a.center.z - b.center.z)
-			.forEach(polygon => {
-				const p1 = this.toScreenSpace(polygon.v1);
-				const p2 = this.toScreenSpace(polygon.v2);
-				const p3 = this.toScreenSpace(polygon.v3);
+      .filter(Boolean)
+      .sort((a, b) => a.center.z - b.center.z)
+      .forEach(polygon => {
+        const p1 = this.toScreenSpace(polygon.v1);
+        const p2 = this.toScreenSpace(polygon.v2);
+        const p3 = this.toScreenSpace(polygon.v3);
 
         let color = polygon.color;
 
@@ -129,22 +129,22 @@ export class Camera3D extends GNode3D {
         lights.forEach(light => {
           color = this.processPointLight(polygon, light, color);
         });
-				
+        
         this.renderPolygon(p1, p2, p3, color);
 
         // Draw the polygon's normal vector
         // this.drawLine(polygon.center, polygon.center.add(polygon.normal.mul(0.05)), Color.RED);
-			});
-	}
+      });
+  }
 
   renderPolygon(p1, p2, p3, color) {
-		this.ctx.beginPath();
-		this.ctx.moveTo(p1.x, p1.y);
-		this.ctx.lineTo(p2.x, p2.y);
-		this.ctx.lineTo(p3.x, p3.y);
-		this.ctx.closePath();
+    this.ctx.beginPath();
+    this.ctx.moveTo(p1.x, p1.y);
+    this.ctx.lineTo(p2.x, p2.y);
+    this.ctx.lineTo(p3.x, p3.y);
+    this.ctx.closePath();
     color.assign(this.ctx);
-		this.ctx.fill();
+    this.ctx.fill();
     this.ctx.lineJoin = 'round';
     color.mul(0.7).assign(this.ctx);
     this.ctx.stroke();
@@ -162,13 +162,13 @@ export class Camera3D extends GNode3D {
     this.ctx.stroke();
   }
 
-	/** @param { Vec3 } point */
-	toScreenSpace(point) {
-		const x = (point.x / point.z) * this.perspective;
-		const y = (point.y / point.z) * this.perspective;
+  /** @param { Vec3 } point */
+  toScreenSpace(point) {
+    const x = (point.x / point.z) * this.perspective;
+    const y = (point.y / point.z) * this.perspective;
 
-		return new Vec3(x, y, point.z);
-	}
+    return new Vec3(x, y, point.z);
+  }
 
   makeCurrent() {
     Camera3D.current = this;
