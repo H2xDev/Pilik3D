@@ -12,29 +12,29 @@ export class GeometryNode extends GNode3D {
     return Object.assign(new GeometryNode(), data);
   }
 
-	// DEFAULT CUBE
+  // DEFAULT CUBE
   //
   /** @type { Vec3[] } */
-	vertices = [];
+  vertices = [];
 
   /** @type { Vec3[] } */
   normals = [];
 
   /** @type { number[] } */
-	indices = [];
+  indices = [];
 
   /** @type { number[] } */
   normalIndices = [];
 
   /** @type { Color[] } */
-	colors = [];
+  colors = [];
 
-	/** @type { Polygon[] } */
-	polygons = [];
+  /** @type { Polygon[] } */
+  polygons = [];
 
-	enterTree() {
+  enterTree() {
     this.updateGeometry();
-	}
+  }
 
   assignGeometry(geometry) {
     this.vertices = geometry.vertices;
@@ -49,11 +49,11 @@ export class GeometryNode extends GNode3D {
 
   updateGeometry() {
     this.polygons = [];
-		for (let i = 0; i < this.indices.length; i += 3) {
+    for (let i = 0; i < this.indices.length; i += 3) {
       const pi = (i / 3) >> 0;
-			const v1 = this.vertices[this.indices[i]];
-			const v2 = this.vertices[this.indices[i + 1]];
-			const v3 = this.vertices[this.indices[i + 2]];
+      const v1 = this.vertices[this.indices[i]];
+      const v2 = this.vertices[this.indices[i + 1]];
+      const v3 = this.vertices[this.indices[i + 2]];
       const color = this.colors[pi] || Color.WHITE;
       const n1 = this.normals[this.normalIndices[i] || this.indices[i]];
       const n2 = this.normals[this.normalIndices[i + 1] || this.indices[i + 1]];
@@ -64,9 +64,9 @@ export class GeometryNode extends GNode3D {
         normal = n1.add(n2).add(n3).div(3).normalized;
       }
 
-			this.polygons.push(Object.assign(new Polygon(), {
+      this.polygons.push(Object.assign(new Polygon(), {
         v1, v2, v3, color, normal 
       }));
-		}
+    }
   }
 }
