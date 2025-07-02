@@ -2,6 +2,8 @@
 
 Pure JS, non-webgl, zero-dependencies 3D rendering engine
 
+[Play Demo](https://pilik-3d.web.app/)
+
 <p align="center">
 <img src="https://github.com/H2xDev/Pilik3D/blob/master/screenshots/screenshot.png?raw=true" alt="Screenshot" />
 </p>
