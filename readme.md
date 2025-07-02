@@ -2,6 +2,10 @@
 
 Pure JS, non-webgl, zero-dependencies 3D Rendering Engine
 
+<p align="center">
+<img src="/sceenshots/screenshot.png" alt="Screenshot" />
+</p>
+
 ## Features
 - Zero dependencies
 - No WebGL
