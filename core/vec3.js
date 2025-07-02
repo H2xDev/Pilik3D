@@ -35,6 +35,18 @@ export class Vec3 {
     return new Vec3(0, 0, 1);
   }
 
+  static get XZ() {
+    return new Vec3(1, 0, 1);
+  }
+
+  static get XY() {
+    return new Vec3(1, 1, 0);
+  }
+
+  static get YZ() {
+    return new Vec3(0, 1, 1);
+  }
+
   get length() {
     return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
   }
@@ -57,6 +69,9 @@ export class Vec3 {
     return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z);
   }
 
+  /**
+    * @param { Vec3 | number } scalar
+    */
   mul(scalar) {
     if (scalar instanceof Vec3) {
       return new Vec3(this.x * scalar.x, this.y * scalar.y, this.z * scalar.z);
@@ -83,6 +98,18 @@ export class Vec3 {
       this.z * v.x - this.x * v.z,
       this.x * v.y - this.y * v.x
     );
+  }
+
+  floor() {
+    return new Vec3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+  }
+
+  ceil() {
+    return new Vec3(Math.ceil(this.x), Math.ceil(this.y), Math.ceil(this.z));
+  }
+
+  round() {
+    return new Vec3(Math.round(this.x), Math.round(this.y), Math.round(this.z));
   }
 
   /**

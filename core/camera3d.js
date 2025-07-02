@@ -10,7 +10,7 @@ import { DEG_TO_RAD } from "./utils.js";
 import { Vec3 } from "./vec3.js";
 
 export class Camera3D extends GNode3D {
-  fov = 60;
+  fov = 90;
   perspective = 1;
   ctx = null;
 
@@ -57,14 +57,14 @@ export class Camera3D extends GNode3D {
     */
   processPointLight(polygon, light, inColor) {
     const lightPos = light.transform.position
-      .applyTransform(light.renderTransform)
+      .applyTransform(light.globalTransform)
       .applyTransform(this.transform.inverse);
 
     const delta = lightPos.sub(polygon.center)
     const lightDir = delta.normalized;
     const distance = delta.length;
     const percent = Math.max(0, 1 - distance / light.radius);
-    const lightShining = Math.pow(Math.max(0, polygon.normal.dot(lightDir)), 1) * percent;
+    const lightShining = Math.pow(Math.max(0, polygon.normal.dot(lightDir)), 3) * percent;
       
     // Debug light position
     this.drawLine(lightPos, lightPos.add(Vec3.UP).mul(0.1), Color.RED);
@@ -87,7 +87,7 @@ export class Camera3D extends GNode3D {
     const ambientColor = DirectionalLight.current.ambient;
 
     const worldNormal = polygon.normal.applyBasis(this.transform.basis);
-    const shining = Math.pow(Math.max(0, -worldNormal.dot(lightDirection)), 5);
+    const shining = Math.pow(Math.max(0, -worldNormal.dot(lightDirection)), 100);
     
     let color = polygon.color.mul(ambientColor).add(lightColor.mul(shining));
     return color
@@ -101,23 +101,24 @@ export class Camera3D extends GNode3D {
     const lights = this.getAllLightNodes(this.scene);
 
     geometries
-      .flatMap(({ polygons, renderTransform: nodeTransform }) => polygons.map(polygon => {
+      .flatMap(({ polygons, globalTransform: nodeTransform }) => polygons.map(polygon => {
         polygon = polygon.applyTransform(nodeTransform);
         const d1 = polygon.v1.sub(this.transform.position).dot(this.transform.basis.forward);
-        if (d1 < 0) return null;
-
         const d2 = polygon.v2.sub(this.transform.position).dot(this.transform.basis.forward);
-        if (d2 < 0) return null;
-
         const d3 = polygon.v3.sub(this.transform.position).dot(this.transform.basis.forward);
-        if (d3 < 0) return null;
+        if (d1 < 0 && d2 < 0 && d3 < 0 ) return null;
 
         if (polygon.normal.dot(this.transform.basis.forward) >= 0.3) return null;
 
         return polygon.applyTransform(this.transform.inverse);
       }))
       .filter(Boolean)
-      .sort((a, b) => a.center.z - b.center.z)
+      .sort((a, b) => {
+        const az = Math.min(a.v1.z, a.v2.z, a.v3.z);
+        const bz = Math.min(b.v1.z, b.v2.z, b.v3.z);
+
+        return az - bz;
+      })
       .forEach(polygon => {
         const p1 = this.toScreenSpace(polygon.v1);
         const p2 = this.toScreenSpace(polygon.v2);
@@ -146,13 +147,16 @@ export class Camera3D extends GNode3D {
     color.assign(this.ctx);
     this.ctx.fill();
     this.ctx.lineJoin = 'round';
+    this.ctx.lineWidth = 3;
     color.mul(0.7).assign(this.ctx);
     this.ctx.stroke();
   }
 
-  drawLine(v1, v2, color = Color.WHITE) {
-    const p1 = this.toScreenSpace(v1);
-    const p2 = this.toScreenSpace(v2);
+  drawLine(v1, v2, color = Color.WHITE, doTransform = false) {
+    const p1 = this.toScreenSpace(v1, doTransform);
+    const p2 = this.toScreenSpace(v2, doTransform);
+
+    if (p1.z > 0 || p2.z > 0) return; // Skip lines that are behind the camera
 
     this.ctx.beginPath();
     this.ctx.moveTo(p1.x, p1.y);
@@ -163,11 +167,17 @@ export class Camera3D extends GNode3D {
   }
 
   /** @param { Vec3 } point */
-  toScreenSpace(point) {
-    const x = (point.x / point.z) * this.perspective;
-    const y = (point.y / point.z) * this.perspective;
+  toScreenSpace(point, doTransform = false) {
+    if (doTransform) {
+      point = point.applyTransform(this.transform.inverse);
+    }
 
-    return new Vec3(x, y, point.z);
+    const z = -Math.max(-point.z, 0.001); // Prevent division by zero
+
+    const x = (point.x / z) * this.perspective;
+    const y = (point.y / z) * this.perspective;
+
+    return new Vec3(x, y, z);
   }
 
   makeCurrent() {

@@ -9,6 +9,10 @@ export class Color {
     return new Color(1, 0, 0);
   }
 
+  static get GREEN() {
+    return new Color(0, 1, 0);
+  }
+
   r = 0;
   g = 0;
   b = 0;

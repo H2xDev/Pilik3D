@@ -22,16 +22,13 @@ export class PlaneGeometry {
     * @param { number } sy - Segments in the Y direction
     */
   constructor(sx, sy) {
-    const halfX = sx / 2;
-    const halfY = sy / 2;
-
     // Generate vertices
     for (let y = 0; y <= sy; y++) {
       for (let x = 0; x <= sx; x++) {
         this.vertices.push(new Vec3(
-          (x / sx) * sx - halfX,
+          (x / sx) * sx,
           0,
-          (y / sy) * sy - halfY,
+          (y / sy) * sy,
         ));
       }
     }

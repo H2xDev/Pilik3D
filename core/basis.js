@@ -28,6 +28,7 @@ export class Basis {
   }
 
   get inverse() {
+    // Транспонируем базис (если он ортогонален), затем применяем обратный масштаб
     return new Basis(
       new Vec3(this.x.x, this.y.x, this.z.x),
       new Vec3(this.x.y, this.y.y, this.z.y),
@@ -39,12 +40,24 @@ export class Basis {
     return this.z.mul(-1);
   }
 
+  set forward(value) {
+    this.z = value.normalized;
+    this.x = this.y.cross(this.z).normalized;
+    this.y = this.z.cross(this.x).normalized;
+  }
+
   get up() {
-    return this.y.mul(-1);
+    return this.y;
+  }
+
+  set up(value) {
+    this.y = value.normalized;
+    this.z = this.x.cross(this.y).normalized;
+    this.x = this.y.cross(this.z).normalized;
   }
 
   get right() {
-    return this.x.mul(-1);
+    return this.x;
   }
 
   get down() {
@@ -52,11 +65,26 @@ export class Basis {
   }
 
   get left() {
-    return this.x;
+    return this.x.mul(-1);
   }
 
   get backward() {
     return this.y;
+  }
+
+  get scale() {
+    return new Vec3(
+      this.x.length,
+      this.y.length,
+      this.z.length
+    );
+  }
+
+  set scale(value) {
+    const currentScale = this.scale;
+    if (currentScale.x !== 0) this.x = this.x.div(currentScale.x).mul(value.x);
+    if (currentScale.y !== 0) this.y = this.y.div(currentScale.y).mul(value.y);
+    if (currentScale.z !== 0) this.z = this.z.div(currentScale.z).mul(value.z);
   }
 
   /**
@@ -93,25 +121,6 @@ export class Basis {
   }
 
   /**
-   * Scales the basis by a scalar or another Vec3.
-   * @param {Vec3 | number } scalar
-   */
-  scale(scalar) {
-    if (scalar instanceof Vec3) {
-      this.x = this.x.mul(scalar.x);
-      this.y = this.y.mul(scalar.y);
-      this.z = this.z.mul(scalar.z);
-      return this;
-    }
-
-    this.x = this.x.mul(scalar);
-    this.y = this.y.mul(scalar);
-    this.z = this.z.mul(scalar);
-
-    return this;
-  }
-
-  /**
     * Spherically interpolates between this basis and another basis.
     *
     * @param { Basis } basis
@@ -144,16 +153,16 @@ export class Basis {
         this.z.dot(new Vec3(other.x.x, other.y.x, other.z.x)),
         this.z.dot(new Vec3(other.x.y, other.y.y, other.z.y)),
         this.z.dot(new Vec3(other.x.z, other.y.z, other.z.z))
-      )
+      ),
     );
   }
 
   /**
-    * @param { Vec3 } target
+    * @param { Vec3 } direction
     * @param { Vec3 } up
     */
-  lookAt(target, up = Vec3.UP) {
-    const z = target.normalized.mul(-1);
+  lookAt(direction, up = Vec3.UP) {
+    const z = direction.normalized.mul(-1);
     const x = up.cross(z).normalized;
     const y = z.cross(x).normalized;
 

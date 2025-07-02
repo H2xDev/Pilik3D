@@ -50,4 +50,35 @@ export class GNode {
 
     return child;
   }
+
+  /**
+    * @param { string } eventName - The name of the event to listen for
+    * @param { Function } callback - The function to call when the event is triggered
+    * @param { boolean } [once=false] - If true, the listener will be removed after the first invocation
+    */
+  on(eventName, callback, once = false) {
+    const handler = (event) => {
+      callback(event.detail);
+      if (once) unsub();
+    }
+
+    const unsub = () => {
+      document.removeEventListener(`${this.id}:${eventName}`, handler);
+    }
+
+    document.addEventListener(`${this.id}:${eventName}`, handler);
+
+    return unsub;
+  }
+
+  /**
+    * @param { string } eventName - The name of the event to trigger
+    * @param { Object } [detail={}] - Additional data to pass with the event
+    */
+  trigger(eventName, detail = {}) {
+    const event = new CustomEvent(`${this.id}:${eventName}`, { detail });
+    document.dispatchEvent(event);
+    return this;
+  }
 }
+
