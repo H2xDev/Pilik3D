@@ -19,13 +19,14 @@ Pure JS, non-webgl, zero-dependencies 3D rendering engine
 > [!IMPORTANT]
 > NodeJS is required to run this project
 
+Run the following command to start a local server:
+```bash
+npx live-server
+```
+
 ## Controls
 - **W**: Move forward
 - **S**: Move backward
 - **A**: Turn left
 - **D**: Turn right
 
-Run the following command to start a local server:
-```bash
-npx live-server
-```
