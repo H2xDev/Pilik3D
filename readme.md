@@ -1,4 +1,4 @@
-# Pilik
+# Pilik3D
 
 Pure JS, non-webgl, zero-dependencies 3D rendering engine
 
