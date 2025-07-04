@@ -21,6 +21,25 @@ export class GNode3D extends GNode {
     this.transform.position = value;
   }
 
+  get globalPosition() {
+    if (this.parent && this.parent instanceof GNode3D) {
+      return this.transform.position.applyTransform(this.parent.globalTransform);
+    }
+
+    return this.transform.position;
+  }
+
+  set globalPosition(value) {
+    if (this.parent && this.parent instanceof GNode3D) {
+      this.transform.position = value.applyTransform(this.parent.globalTransform.inverse);
+    } else {
+      this.transform.position = value;
+    }
+  }
+
+  /**
+    * @returns { Transform3D }
+    */
   get globalTransform() {
     if (this.parent && this.parent instanceof GNode3D) {
       return this.parent.globalTransform.multiply(this.transform);

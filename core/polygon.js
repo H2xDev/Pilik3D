@@ -7,6 +7,7 @@ export class Polygon {
   v3 = Vec3.ZERO;
   color = Color.WHITE;
   normal = Vec3.UP;
+  geometryNode = null;
 
   get center() {
     return new Vec3(
@@ -23,7 +24,8 @@ export class Polygon {
       v2: this.v2.applyTransform(transform),
       v3: this.v3.applyTransform(transform),
       normal: this.normal.applyBasis(transform.basis).normalized,
-      color: this.color
+      color: this.color,
+      geometryNode: this.geometryNode,
     });
   }
 }

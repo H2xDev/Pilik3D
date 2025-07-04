@@ -18,6 +18,8 @@ export class GNode {
 
   enabled = true;
 
+  meta = {};
+
   /** @virtual */
   enterTree() {}
 

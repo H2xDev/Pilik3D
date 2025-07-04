@@ -152,7 +152,7 @@ export class Basis {
         this.z.dot(new Vec3(other.x.x, other.y.x, other.z.x)),
         this.z.dot(new Vec3(other.x.y, other.y.y, other.z.y)),
         this.z.dot(new Vec3(other.x.z, other.y.z, other.z.z))
-      ),
+      )
     );
   }
 

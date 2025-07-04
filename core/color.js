@@ -13,6 +13,26 @@ export class Color {
     return new Color(0, 1, 0);
   }
 
+  static get BLUE() {
+    return new Color(0, 0, 1);
+  }
+  
+  static get BLACK() {
+    return new Color(0, 0, 0);
+  }
+
+  static get YELLOW() {
+    return new Color(1, 1, 0);
+  }
+
+  static get CYAN() {
+    return new Color(0, 1, 1);
+  }
+
+  static get MAGENTA() {
+    return new Color(1, 0, 1);
+  }
+
   r = 0;
   g = 0;
   b = 0;

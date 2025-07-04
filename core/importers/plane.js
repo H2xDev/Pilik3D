@@ -1,35 +1,32 @@
 import { Vec3 } from '../vec3.js';
 import { Color } from '../color.js';
+import { GeometryBase } from './base.js';
 
-export class PlaneGeometry {
-  /** @type { Vec3[] } */
-  vertices = [];
-
-  /** @type { number[] } */
-  indices = [];
-
-  /** @type { Vec3[] } */
-  normals = [];
-
-  /** @type { number[] } */
-  normalIndices = [];
-
-  /** @type { Color[] } */
-  colors = [];
+export class PlaneGeometry extends GeometryBase {
 
   /**
     * @param { number } sx - Segments in the X direction
     * @param { number } sy - Segments in the Y direction
     */
-  constructor(sx, sy) {
+  constructor(sx, sy, fromCenter = false) {
+    super();
+
+    const halfWidth = sx / 2;
+    const halfHeight = sy / 2;
+
     // Generate vertices
     for (let y = 0; y <= sy; y++) {
       for (let x = 0; x <= sx; x++) {
-        this.vertices.push(new Vec3(
+        const v = new Vec3(
           (x / sx) * sx,
           0,
           (y / sy) * sy,
-        ));
+        )
+        if (fromCenter) {
+          v.x -= halfWidth;
+          v.z -= halfHeight;
+        }
+        this.vertices.push(v);
       }
     }
 

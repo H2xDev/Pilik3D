@@ -13,6 +13,19 @@ export class DirectionalLight extends GNode3D {
     DirectionalLight.current = this;
   }
 
+  /**
+    * Process a polygon with the directional light.
+    *
+    * @param { import("./camera3d.js").Camera3D } camera
+    * @param { import("./polygon.js").Polygon } polygon
+    */
+  processPolygon(camera, polygon) {
+    const worldNormal = polygon.normal.applyBasis(camera.transform.basis);
+    const shining = Math.pow(Math.max(0, -worldNormal.dot(this.basis.forward)), 2);
+    
+    return polygon.color.mul(this.ambient).add(this.color.mul(shining));
+  }
+
   constructor(color = Color.WHITE, direction = Vec3.DOWN) {
     super();
     this.color = color;

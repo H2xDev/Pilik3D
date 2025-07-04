@@ -4,6 +4,7 @@ import { GNode3D } from '../core/node3d.js';
 import { getNormal } from '../core/utils.js';
 import { Basis } from '../core/basis.js';
 import { Color } from '../core/color.js';
+import { OBJImporter } from '../core/importers/obj.js';
 
 export class Player extends GNode3D {
   velocity = Vec3.ZERO;
@@ -11,8 +12,9 @@ export class Player extends GNode3D {
   model = null;
   modelBasis = Basis.IDENTITY.rotate(Vec3.UP, Math.PI);
   turnValue = 0;
-  movementSpeed = 2;
+  movementSpeed = 4;
   debug = false;
+  isOnGround = false;
 
   get camera() {
     return this.scene.camera;
@@ -27,8 +29,9 @@ export class Player extends GNode3D {
   }
 
   async enterTree() {
+    const modelData = await fetch('/assets/sedan-sports.obj').then(res => res.text());
     this.model = new GeometryNode()
-      .assignGeometry(await GeometryNode.importFromObj('/assets/sedan-sports.obj'));
+      .assignGeometry(new OBJImporter(modelData));
 
     this.model.basis = this.model.basis.multiply(this.modelBasis);
 
@@ -39,6 +42,7 @@ export class Player extends GNode3D {
 
     this.camera.position = this.targetCameraPosition;
     this.camera.basis = this.transform.basis;
+    this.model.debug.showAABB = this.debug;
   }
 
   processCamera(dt) {
@@ -51,26 +55,29 @@ export class Player extends GNode3D {
   }
 
   processMovement(dt) {
-
     const forward = (this.keyboard['w'] ?? 0) - (this.keyboard['s'] ?? 0);
     const rotateRight = (this.keyboard['d'] ?? 0) - (this.keyboard['a'] ?? 0);
 
     this.turnValue -= (this.turnValue - rotateRight) * dt * 5;
-    this.velocity = this.velocity
-      .add(Vec3.FORWARD.mul(this.movementSpeed * dt * forward));
-
-    const sign = this.velocity.dot(Vec3.FORWARD) < 0 ? 1 : -1;
-    const rotationSpeed = Math.min(1, this.velocity.length) * sign;
-
-    this.basis
-      .rotate(this.basis.up, this.turnValue * rotationSpeed * dt);
+    if (!this.model) return;
 
     this.position = this.position
       .add(this.velocity.mul(dt)
       .applyBasis(this.basis));
 
-    this.velocity = this.velocity
-      .lerp(Vec3.ZERO, dt); // Dampen the velocity
+    if (this.isOnGround) {
+      this.velocity = this.velocity
+        .add(Vec3.FORWARD.mul(this.movementSpeed * dt * forward));
+
+      const sign = this.velocity.dot(Vec3.FORWARD) < 0 ? 1 : -1;
+      const rotationSpeed = Math.min(1, this.velocity.length) * sign;
+
+      this.basis
+        .rotate(this.basis.up, this.turnValue * rotationSpeed * dt);
+
+      this.velocity = this.velocity
+        .lerp(Vec3.ZERO, dt); // Dampen the velocity
+    }
   }
 
   processGravity(dt) {
@@ -96,6 +103,8 @@ export class Player extends GNode3D {
     const targetY = (h1.y + h2.y + h3.y + h4.y) / 4;
     const normal = n1.add(n2).normalized;
 
+    this.isOnGround = this.position.y - 0.01 <= targetY;
+
     if (this.position.y - 0.01 > targetY) {
       this.velocity = this.velocity.add(Vec3.UP.mul(-2.0 * dt)); // Gravity
     }
@@ -106,14 +115,21 @@ export class Player extends GNode3D {
 
     if (!this.model) return;
 
-    this.modelBasis = Object.assign(Basis.IDENTITY, { up: normal });
-    this.model.basis = this.model.basis.slerp(this.modelBasis, dt * 10);
-    this.model.basis.rotate(this.basis.forward, this.turnValue * 0.025 * Math.PI / 2); 
-    this.model.basis.scale = new Vec3(0.125, 0.125, 0.125);
+    if (this.isOnGround) {
+      const rotationSpeed = Math.min(1, this.velocity.length);
+
+      this.modelBasis = Object.assign(Basis.IDENTITY, { up: normal });
+      this.model.basis = this.model.basis.slerp(this.modelBasis, dt * 3);
+
+      // Turning tilt
+      this.model.basis.rotate(this.basis.forward, this.turnValue * 0.0125 * Math.PI / 2 * rotationSpeed); 
+
+      this.model.basis.scale = new Vec3(0.125, 0.125, 0.125);
+    }
 
     const targetPos = Math.max(targetY, this.position.y);
     this.position.y -= (this.position.y - targetPos) * dt * 4;
-    this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 2;
+    this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 10;
   }
 
   /**

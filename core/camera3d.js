@@ -8,11 +8,13 @@ import { DirectionalLight } from "./directionalLight.js";
 import { Polygon } from "./polygon.js";
 import { DEG_TO_RAD } from "./utils.js";
 import { Vec3 } from "./vec3.js";
+import { Fog } from "./fog.js";
 
 export class Camera3D extends GNode3D {
   fov = 90;
   perspective = 1;
   ctx = null;
+  far = 10;
 
   constructor() {
     super();
@@ -49,48 +51,61 @@ export class Camera3D extends GNode3D {
   }
 
   /**
-    * Process point light for a polygon.
-    * @param { Polygon } polygon
-    * @param { PointLight } light
-    * @param { Color } inColor
-    * @returns { Color }
+    * @param { GeometryNode[] } geometries
+    * @param { PointLight[] } lights
     */
-  processPointLight(polygon, light, inColor) {
-    const lightPos = light.transform.position
-      .applyTransform(light.globalTransform)
-      .applyTransform(this.transform.inverse);
+  renderGeometries(geometries, lights) {
+    let polugonsRendered = 0;
 
-    const delta = lightPos.sub(polygon.center)
-    const lightDir = delta.normalized;
-    const distance = delta.length;
-    const percent = Math.max(0, 1 - distance / light.radius);
-    const lightShining = Math.pow(Math.max(0, polygon.normal.dot(lightDir)), 3) * percent;
-      
-    // Debug light position
-    this.drawLine(lightPos, lightPos.add(Vec3.UP).mul(0.1), light.color);
+    // Filter out polygons that are behind the camera or facing away from the camera
+    geometries
+      .flatMap((geometry) => geometry.polygons.map(polygon => {
+        polygon = polygon.applyTransform(geometry.globalTransform);
 
-    return inColor.add(light.color.mul(lightShining));
-  }
+        if (polygon.center.sub(this.transform.position).length > this.far) return null; // Skip polygons that are too far away
 
-  /**
-    * Process directional light for a polygon.
-    *
-    * @param { Polygon } polygon
-    * @param { Color } inColor
-    * @returns { Color }
-    */
-  processDirectionalLight(polygon, inColor) {
-    if (!DirectionalLight.current) return inColor;
+        // Frustum culling
+        const viewDir = polygon.center.sub(this.transform.position.sub(this.basis.forward.mul(0.5))).normalized;
+        const cosHalfFov = Math.cos(this.fov);
+        const cosAngle = viewDir.dot(this.basis.forward);
+        if (cosAngle < cosHalfFov) return null;
 
-    const lightDirection = DirectionalLight.current.transform.basis.forward;
-    const lightColor = DirectionalLight.current.color;
-    const ambientColor = DirectionalLight.current.ambient;
+        // FIXME: There's something wrong with the normal or with the camera's forward vector.
+        //        In case the condition "> 0" the camera doesn't rendering polygons that still 
+        //        facing the camera. Still trying to figure out why.
+        if (polygon.normal.dot(this.basis.forward) > 0.7) return null;
 
-    const worldNormal = polygon.normal.applyBasis(this.transform.basis);
-    const shining = Math.pow(Math.max(0, -worldNormal.dot(lightDirection)), 100);
-    
-    let color = polygon.color.mul(ambientColor).add(lightColor.mul(shining));
-    return color
+        return polygon.applyTransform(this.transform.inverse);
+      }))
+      // Filter out null polygons
+      .filter(Boolean)
+      // Painter's algorithm: sort polygons by their minimum z value
+      .sort((a, b) => {
+        const az = Math.min(a.v1.z, a.v2.z, a.v3.z);
+        const bz = Math.min(b.v1.z, b.v2.z, b.v3.z);
+
+        return az - bz;
+      })
+      .forEach(polygon => {
+        let color = polygon.color;
+
+        color = DirectionalLight.current?.processPolygon(this, polygon) || color;
+
+        lights.forEach(light => {
+          color = light.processPolygon(this, polygon, color);
+        });
+
+        color = Fog.current.processPolygon(this, polygon, color);
+        
+        this.renderPolygon(polygon, color);
+
+        // Draw the polygon's normal vector
+        if (polygon.geometryNode.debug.showNormals) {
+          this.drawLine(polygon.center, polygon.center.add(polygon.normal.mul(0.05)), Color.RED);
+        }
+
+        polugonsRendered++;
+      });
   }
 
   process(dt, ctx) {
@@ -100,45 +115,38 @@ export class Camera3D extends GNode3D {
     const geometries = this.getAllGeometryNodes(this.scene);
     const lights = this.getAllLightNodes(this.scene);
 
+    const allGeometries = geometries
+      // NOTE: Skip geometries that are behind the camera
+      .filter(geometry => geometry.enabled && geometry.aabb.vertices.some(v => v
+        .applyTransform(geometry.globalTransform)
+        .applyTransform(this.transform.inverse).z <= 0))
+
+    const regularRender = allGeometries.filter(geometry => !geometry.passDepth);
+    const backgroundRender = allGeometries.filter(geometry => geometry.passDepth);
+
+    this.renderGeometries(backgroundRender, lights);
+    this.renderGeometries(regularRender, lights);
+
     geometries
-      .flatMap(({ polygons, globalTransform: nodeTransform }) => polygons.map(polygon => {
-        polygon = polygon.applyTransform(nodeTransform);
-        const d1 = polygon.v1.sub(this.transform.position).dot(this.transform.basis.forward);
-        const d2 = polygon.v2.sub(this.transform.position).dot(this.transform.basis.forward);
-        const d3 = polygon.v3.sub(this.transform.position).dot(this.transform.basis.forward);
-        if (d1 < 0 && d2 < 0 && d3 < 0 ) return null;
-
-        if (polygon.normal.dot(this.transform.basis.forward) >= 0.3) return null;
-
-        return polygon.applyTransform(this.transform.inverse);
-      }))
-      .filter(Boolean)
-      .sort((a, b) => {
-        const az = Math.min(a.v1.z, a.v2.z, a.v3.z);
-        const bz = Math.min(b.v1.z, b.v2.z, b.v3.z);
-
-        return az - bz;
-      })
-      .forEach(polygon => {
-        const p1 = this.toScreenSpace(polygon.v1);
-        const p2 = this.toScreenSpace(polygon.v2);
-        const p3 = this.toScreenSpace(polygon.v3);
-
-        let color = polygon.color;
-
-        color = this.processDirectionalLight(polygon, color);
-        lights.forEach(light => {
-          color = this.processPointLight(polygon, light, color);
-        });
-        
-        this.renderPolygon(p1, p2, p3, color);
-
-        // Draw the polygon's normal vector
-        // this.drawLine(polygon.center, polygon.center.add(polygon.normal.mul(0.05)), Color.RED);
-      });
+      .filter(geometry => geometry.debug.showAABB)
+      .forEach(geometry => this.renderAABB(geometry, Color.WHITE));
   }
 
-  renderPolygon(p1, p2, p3, color) {
+  /**
+    * @param { Polygon } polygon
+    * @param { Color } color
+    */
+  renderPolygon(polygon, color) {
+    const p1 = this.toScreenSpace(polygon.v1);
+    const p2 = this.toScreenSpace(polygon.v2);
+    const p3 = this.toScreenSpace(polygon.v3);
+
+    const minY = Math.min(p1.y, p2.y, p3.y);
+    const maxY = Math.max(p1.y, p2.y, p3.y);
+
+    // Skip polygons that are filling the whole screen
+    if (minY < 10 && maxY > this.ctx.canvas.height - 10) return;
+
     this.ctx.beginPath();
     this.ctx.moveTo(p1.x, p1.y);
     this.ctx.lineTo(p2.x, p2.y);
@@ -147,9 +155,29 @@ export class Camera3D extends GNode3D {
     color.assign(this.ctx);
     this.ctx.fill();
     this.ctx.lineJoin = 'round';
-    this.ctx.lineWidth = 3;
-    color.mul(0.7).assign(this.ctx);
+    this.ctx.lineWidth = 2;
+    // color.hueRotate(-15).assign(this.ctx);
     this.ctx.stroke();
+  }
+
+  /**
+    * @param { GNode3D } node3d
+    * @param { Color } [color=Color.WHITE]
+    */
+  renderAABB(node3d, color = Color.WHITE) {
+    const { vertices } = node3d.aabb;
+
+    const points = vertices.map(point => point.applyTransform(node3d.globalTransform));
+
+    const edges = [
+      [0, 1], [1, 2], [2, 3], [3, 0],
+      [4, 5], [5, 6], [6, 7], [7, 4],
+      [0, 4], [1, 5], [2, 6], [3, 7]
+    ];
+
+    edges.forEach(([start, end]) => {
+      this.drawLine(points[start], points[end], color, true);
+    });
   }
 
   drawLine(v1, v2, color = Color.WHITE, doTransform = false) {
@@ -163,6 +191,23 @@ export class Camera3D extends GNode3D {
     this.ctx.lineTo(p2.x, p2.y);
     this.ctx.lineWidth = 2;
     color.assign(this.ctx);
+    this.ctx.stroke();
+  }
+
+  /**
+    * @param { Vec3 } center
+    * @param { number } radius
+    * @param { Color } [color=Color.WHITE]
+    */
+  drawCircle(center, radius, color = Color.WHITE) {
+    const p = this.toScreenSpace(center);
+    if (p.z > 0) return; // Skip circles that are behind the Camera3D
+    this.ctx.beginPath();
+    this.ctx.arc(p.x, p.y, Math.max(0.001, 1.0 - radius / p.z), 0, Math.PI * 2);
+    color.assign(this.ctx);
+    this.ctx.fill();
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = color.mul(0.7).toString();
     this.ctx.stroke();
   }
 

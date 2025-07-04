@@ -80,6 +80,10 @@ export class Vec3 {
     return new Vec3(this.x * scalar, this.y * scalar, this.z * scalar);
   }
 
+  /**
+    * @param { Vec3 | number } scalar
+    * @return { Vec3 }
+    */
   div(scalar) {
     if (scalar instanceof Vec3) {
       return new Vec3(this.x / scalar.x, this.y / scalar.y, this.z / scalar.z);
@@ -155,6 +159,13 @@ export class Vec3 {
     return v0.mul(a).add(v1.mul(b));
   } 
 
+  set(x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    return this;
+  }
+
   /** @param { import('./transform3d.js').Transform3D } transform */
   applyTransform(transform) {
     return this.applyBasis(transform.basis).add(transform.position);
@@ -168,7 +179,7 @@ export class Vec3 {
   }
 
   toString() {
-    return `Vec3(${this.x}, ${this.y}, ${this.z})`;
+    return `Vec3(${this.x.toFixed(2)}, ${this.y.toFixed(2)}, ${this.z.toFixed(2)})`;
   }
 }
 

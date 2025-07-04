@@ -2,10 +2,11 @@ import { GeometryNode } from "../core/geometryNode.js";
 import { PlaneGeometry } from "../core/importers/plane.js";
 import { Vec3 } from "../core/vec3.js";
 import { Perlin } from "../core/perlin.js";
+import { getNormal } from "../core/utils.js";
 
 const perlin = new Perlin();
 const GRID_SIZE = 5;
-const CHUNK_SIZE = 15;
+const CHUNK_SIZE = 20;
 
 export class Terrain extends GeometryNode {
 
@@ -39,15 +40,30 @@ export class Terrain extends GeometryNode {
   process(dt) {
     const gridPos = this.player.position.div(GRID_SIZE).round();
     this.positionHash = gridPos;
-
-    // this.position = gridPos.mul(10);
   }
 
   getHeightAt(x, z) {
     x = Math.floor(x / 0.1) * 0.1; // Snap to grid
     z = Math.floor(z / 0.1) * 0.1; // Snap to grid
     // Generate height using Perlin noise
-    return perlin.get(x / GRID_SIZE, z / GRID_SIZE);
+    return perlin.get(x / GRID_SIZE, z / GRID_SIZE) * 2.0;
+  }
+
+  getPositionAt(x, z) {
+    const h = this.getHeightAt(x, z);
+    return new Vec3(x, h, z);
+  }
+
+  getNormalAt(x, z) {
+    const h1 = this.getHeightAt(x, z);
+    const h2 = this.getHeightAt(x + 1, z);
+    const h3 = this.getHeightAt(x, z + 1);
+
+    const p1 = new Vec3(x, h1, z);
+    const p2 = new Vec3(x + 1, h2, z);
+    const p3 = new Vec3(x, h3, z + 1);
+
+    return getNormal(p1, p2, p3).mul(-1).normalized;
   }
 
   regenerateTerrain() {
@@ -65,17 +81,22 @@ export class Terrain extends GeometryNode {
       // Generate height using Perlin noise
       v.x = gridPos.x * GRID_SIZE + ix - CHUNK_SIZE * 0.5;
       v.z = gridPos.z * GRID_SIZE + iz - CHUNK_SIZE * 0.5;
-      v.y = perlin.get(v.x / GRID_SIZE, v.z / GRID_SIZE);
+      v.y = this.getHeightAt(v.x, v.z);
 
       const h1 = this.getHeightAt(v.x, v.z);
-      const h2 = this.getHeightAt(v.x + 0.1, v.z);
-      const h3 = this.getHeightAt(v.x, v.z + 0.1);
+      const h2 = this.getHeightAt(v.x + 1, v.z);
+      const h3 = this.getHeightAt(v.x, v.z + 1);
 
-      const normal = new Vec3(
-        h1 - h2,
-        0.1, // Small offset to avoid zero vector
-        h1 - h3
-      ).normalized;
+      const p1 = new Vec3(v.x, h1, v.z);
+      const p2 = new Vec3(v.x + 1, h2, v.z);
+      const p3 = new Vec3(v.x, h3, v.z + 1);
+
+      const normal = getNormal(p1, p2, p3).mul(-1).normalized;
+
+      if (normal.y < 0) {
+        // Flip the normal if it's pointing downwards
+        normal.y *= -1;
+      }
 
       normals[i] = normal;
     }
