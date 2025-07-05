@@ -4,6 +4,8 @@ import { GNode3D } from '../core/node3d.js';
 import { getNormal } from '../core/utils.js';
 import { Color } from '../core/color.js';
 import { OBJImporter } from '../core/importers/obj.js';
+import { getAcceleration, getFrictionRate } from './utils.js';
+import { Camera3D } from '../core/camera3d.js';
 
 const GRAVITY = 2.81; // Gravity constant
 
@@ -11,13 +13,15 @@ export class Player extends GNode3D {
   velocity = Vec3.ZERO;
   keyboard = {};
 
-  /** @type { GNode3D } */
+  /** @type { GeometryNode } */
   model = null;
   turnVelocity = 0;
-  movementSpeed = 4;
+  movementSpeed = 10;
   turnSpeed = 5;
+  friction = 5;
   debug = false;
   isOnGround = false;
+  forwardSpeed = 0;
 
   /**
     * @param { number } dt - Delta time in seconds.
@@ -42,7 +46,7 @@ export class Player extends GNode3D {
         .add(this.camera.basis.forward
           .mul(this.velocity.length * 0.1)))
       .add(this.model.globalTransform.basis.up
-        .mul(0.5));
+        .mul(0.0));
 
     // NOTE: Prevent camera from going below terrain
     const minY = this.scene.terrain.getHeightAt(pos.x, pos.z) + 0.25;
@@ -58,9 +62,7 @@ export class Player extends GNode3D {
 
     this.addChild(this.model);
 
-    window.addEventListener('keydown', (e) => {
-      this.keyboard[e.code] = 1
-    });
+    window.addEventListener('keydown', (e) => this.keyboard[e.code] = 1);
     window.addEventListener('keyup', (e) => this.keyboard[e.code] = 0);
 
     this.camera.position = this.targetCameraPosition;
@@ -80,11 +82,15 @@ export class Player extends GNode3D {
 
     this.camera.basis = this.camera.basis
       .slerp(this.model.globalTransform.basis.rotate(this.model.basis.up, this.turnVelocity * 0.2), 4 * dt);
+
+    this.camera.fov = 50 + this.velocity.length * 10;
   }
 
   processMovement(dt) {
-    const forward = (this.keyboard['KeyW'] ?? 0) - (this.keyboard['KeyS'] ?? 0);
+    const forwardTarget = (this.keyboard['KeyW'] ?? 0) - (this.keyboard['KeyS'] ?? 0);
     const rotateRight = (this.keyboard['KeyD'] ?? 0) - (this.keyboard['KeyA'] ?? 0);
+
+    this.forwardSpeed -= (this.forwardSpeed - forwardTarget) * dt;
 
     this.position = this.position
       .add(this.velocity.mul(dt));
@@ -92,14 +98,15 @@ export class Player extends GNode3D {
 
     if (this.isOnGround) {
       this.rotationSign = this.velocity.mul(Vec3.XZ).dot(this.model.basis.forward) < 0 ? 1 : -1;
-      this.turnVelocity += (rotateRight * forward) * this.velocity.length * -dt;
+      this.turnVelocity += (rotateRight * this.forwardSpeed) * this.velocity.length * -dt;
       this.turnVelocity -= this.turnVelocity * dt;
 
-      this.velocity = this.velocity
-        .add(this.model.basis.forward.mul(this.movementSpeed * dt * forward));
+      const acceleration = getAcceleration(this.movementSpeed, this.friction, dt);
 
       this.velocity = this.velocity
-        .lerp(Vec3.ZERO, dt);
+        .add(this.model.basis.forward.mul(acceleration * dt * this.forwardSpeed));
+
+      this.velocity = this.velocity.mul(getFrictionRate(this.friction, dt));
 
       if (this.keyboard['Space']) {
         this.velocity = this.velocity.add(this.model.basis.up);
