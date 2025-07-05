@@ -9,7 +9,7 @@ export class Fog {
   static current = new Fog();
   type = FogType.LINEAR;
   color = Color.WHITE;
-  density = 0.1; // For exponential fog, default density
+  density = 2.0; // For exponential fog, default density
   enabled = true; // Whether fog is enabled
 
   constructor(type = FogType.LINEAR, color = Color.WHITE) {
@@ -28,10 +28,10 @@ export class Fog {
     */
   processPolygon(camera, polygon, inColor) {
     if (!this.enabled) return inColor;
-    let fogFactor = polygon.center.length / camera.far;
+    let fogFactor = Math.min(1.0, polygon.center.length / camera.far);
 
     if (this.type === FogType.EXPONENTIAL) {
-      fogFactor = Math.exp(-this.density * fogFactor);
+      fogFactor = 1.0 - Math.exp(-this.density * fogFactor);
     }
 
     if (fogFactor <= 0) return inColor;

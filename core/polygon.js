@@ -17,6 +17,23 @@ export class Polygon {
     );
   }
 
+  clone() {
+    return Object.assign(new Polygon(), {
+      v1: this.v1.clone(),
+      v2: this.v2.clone(),
+      v3: this.v3.clone(),
+      normal: this.normal.clone(),
+      color: this.color.clone(),
+      geometryNode: this.geometryNode,
+    });
+  }
+
+  recalculateNormal() {
+    const edge1 = this.v2.sub(this.v1);
+    const edge2 = this.v3.sub(this.v1);
+    this.normal = edge1.cross(edge2).normalized.inverted;
+  }
+
   /** @param { import('./transform3d').Transform3D } transform */
   applyTransform(transform) {
     return Object.assign(new Polygon(), {

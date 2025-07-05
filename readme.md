@@ -30,3 +30,6 @@ npx live-server
 - **A**: Turn left
 - **D**: Turn right
 
+## Credits
+Car model by [Iron Minecard2 (Sketchfab)](https://sketchfab.com/3d-models/lamborghini-gallardo-low-poly-463f8eb77d8046678782783bd754b4d2)
+Perlin noise by [@joeiddon](https://github.com/joeiddon/perlin)

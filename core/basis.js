@@ -172,6 +172,23 @@ export class Basis {
     return this;
   }
 
+  /**
+    * @param { Vec3 | number } scale
+    */
+  scaled(scale) {
+    if (scale instanceof Vec3) return new Basis(
+      this.x.mul(scale.x),
+      this.y.mul(scale.y),
+      this.z.mul(scale.z)
+    );
+
+    return new Basis(
+      this.x.mul(scale),
+      this.y.mul(scale),
+      this.z.mul(scale)
+    );
+  }
+
   toString() {
     return `Basis(
       x: ${this.x.toString()},

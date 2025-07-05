@@ -1,7 +1,6 @@
 // @ts-check
 import { Color } from "./color.js";
 import { GeometryNode } from "./geometryNode.js";
-import { GNode } from "./gnode.js";
 import { GNode3D } from "./node3d.js";
 import { PointLight } from "./light.js";
 import { DirectionalLight } from "./directionalLight.js";
@@ -9,45 +8,39 @@ import { Polygon } from "./polygon.js";
 import { DEG_TO_RAD } from "./utils.js";
 import { Vec3 } from "./vec3.js";
 import { Fog } from "./fog.js";
+import { AABB } from "./aabb.js";
 
 export class Camera3D extends GNode3D {
-  fov = 90;
+  /**
+    * @type { Camera3D }
+    */
+  static current = null;
+
+  fov = 50;
   perspective = 1;
   ctx = null;
   far = 10;
+
+  /** 
+    * @type { GeometryNode[] }
+    */
+  geometryNodes = [];
+
+  /**
+    * @type { PointLight[] }
+    */
+  lightNodes = [];
 
   constructor() {
     super();
     this.makeCurrent();
   }
 
-  /** 
-    * @param { GNode } node
-    * @param { GeometryNode[] } geometries
-    * @returns GeometryNode[] 
-    */
-  getAllGeometryNodes(node, geometries = []) {
-    if (node instanceof GeometryNode) {
-      geometries.push(node);
-    }
-
-    for (const child of node.children) {
-      this.getAllGeometryNodes(child, geometries);
-    }
-
-    return geometries;
-  }
-
-  getAllLightNodes(node, lights = []) {
-    if (node instanceof PointLight) {
-      lights.push(node);
-    }
-
-    for (const child of node.children) {
-      this.getAllLightNodes(child, lights);
-    }
-
-    return lights;
+  enterTree() {
+    this.scene.on(Camera3D.Events.CHILD_ADDED, () => {
+      this.geometryNodes = this.scene.getChildrenByClass(GeometryNode);
+      this.lightNodes = this.scene.getChildrenByClass(PointLight);
+    });
   }
 
   /**
@@ -62,20 +55,25 @@ export class Camera3D extends GNode3D {
       .flatMap((geometry) => geometry.polygons.map(polygon => {
         polygon = polygon.applyTransform(geometry.globalTransform);
 
-        if (polygon.center.sub(this.transform.position).length > this.far) return null; // Skip polygons that are too far away
+        const polygonIsTooFar = polygon.center.sub(this.transform.position.add(this.basis.backward)).length > this.far;
+        if (polygonIsTooFar) return null;
 
-        // Frustum culling
-        const viewDir = polygon.center.sub(this.transform.position.sub(this.basis.forward.mul(0.5))).normalized;
-        const cosHalfFov = Math.cos(this.fov);
-        const cosAngle = viewDir.dot(this.basis.forward);
-        if (cosAngle < cosHalfFov) return null;
+        // NOTE: Assuming the camera is a bit back from the original position
+        const viewDir = polygon.center.sub(this.transform.position).normalized;
 
-        // FIXME: There's something wrong with the normal or with the camera's forward vector.
-        //        In case the condition "> 0" the camera doesn't rendering polygons that still 
-        //        facing the camera. Still trying to figure out why.
-        if (polygon.normal.dot(this.basis.forward) > 0.7) return null;
+        const polygonFacingAway = polygon.normal.dot(viewDir) > 0;
+        if (polygonFacingAway) return null;
 
-        return polygon.applyTransform(this.transform.inverse);
+        const polygonIsOutOfFrustum = viewDir.dot(this.basis.forward) < Math.cos(this.fov * DEG_TO_RAD);
+        if (polygonIsOutOfFrustum) return null;
+
+        const resultPolygon = polygon.applyTransform(this.globalTransform.inverse);
+
+        if (resultPolygon.geometryNode.polygonProgram) {
+          return resultPolygon.geometryNode.polygonProgram(resultPolygon, this);
+        }
+
+        return resultPolygon;
       }))
       // Filter out null polygons
       .filter(Boolean)
@@ -89,11 +87,13 @@ export class Camera3D extends GNode3D {
       .forEach(polygon => {
         let color = polygon.color;
 
-        color = DirectionalLight.current?.processPolygon(this, polygon) || color;
+        if (!polygon.geometryNode.emissive) {
+          color = DirectionalLight.current?.processPolygon(this, polygon) || color;
 
-        lights.forEach(light => {
-          color = light.processPolygon(this, polygon, color);
-        });
+          lights.forEach(light => {
+            color = light.processPolygon(this, polygon, color);
+          });
+        }
 
         color = Fog.current.processPolygon(this, polygon, color);
         
@@ -108,14 +108,15 @@ export class Camera3D extends GNode3D {
       });
   }
 
+  /**
+    * @param { number } dt - Delta time
+    * @param { CanvasRenderingContext2D } ctx - The rendering context of the canvas
+    */
   process(dt, ctx) {
     this.ctx = ctx;
     this.perspective = (ctx.canvas.height / 2) / Math.tan(this.fov * DEG_TO_RAD / 2)
 
-    const geometries = this.getAllGeometryNodes(this.scene);
-    const lights = this.getAllLightNodes(this.scene);
-
-    const allGeometries = geometries
+    const allGeometries = this.geometryNodes
       // NOTE: Skip geometries that are behind the camera
       .filter(geometry => geometry.enabled && geometry.aabb.vertices.some(v => v
         .applyTransform(geometry.globalTransform)
@@ -124,12 +125,12 @@ export class Camera3D extends GNode3D {
     const regularRender = allGeometries.filter(geometry => !geometry.passDepth);
     const backgroundRender = allGeometries.filter(geometry => geometry.passDepth);
 
-    this.renderGeometries(backgroundRender, lights);
-    this.renderGeometries(regularRender, lights);
+    this.renderGeometries(backgroundRender, this.lightNodes);
+    this.renderGeometries(regularRender, this.lightNodes);
 
-    geometries
+    allGeometries
       .filter(geometry => geometry.debug.showAABB)
-      .forEach(geometry => this.renderAABB(geometry, Color.WHITE));
+      .forEach(geometry => AABB.renderAABB(this, geometry, Color.ORANGE));
   }
 
   /**
@@ -137,15 +138,13 @@ export class Camera3D extends GNode3D {
     * @param { Color } color
     */
   renderPolygon(polygon, color) {
+    if (polygon.geometryNode.preprocessPolygon) {
+      polygon = polygon.geometryNode.preprocessPolygon(polygon, color, this);
+    }
+
     const p1 = this.toScreenSpace(polygon.v1);
     const p2 = this.toScreenSpace(polygon.v2);
     const p3 = this.toScreenSpace(polygon.v3);
-
-    const minY = Math.min(p1.y, p2.y, p3.y);
-    const maxY = Math.max(p1.y, p2.y, p3.y);
-
-    // Skip polygons that are filling the whole screen
-    if (minY < 10 && maxY > this.ctx.canvas.height - 10) return;
 
     this.ctx.beginPath();
     this.ctx.moveTo(p1.x, p1.y);
@@ -156,35 +155,22 @@ export class Camera3D extends GNode3D {
     this.ctx.fill();
     this.ctx.lineJoin = 'round';
     this.ctx.lineWidth = 2;
-    // color.hueRotate(-15).assign(this.ctx);
     this.ctx.stroke();
   }
 
+
   /**
-    * @param { GNode3D } node3d
+    * @param { Vec3 } v1
+    * @param { Vec3 } v2
     * @param { Color } [color=Color.WHITE]
+    * @param { boolean } [doTransform=false]
     */
-  renderAABB(node3d, color = Color.WHITE) {
-    const { vertices } = node3d.aabb;
-
-    const points = vertices.map(point => point.applyTransform(node3d.globalTransform));
-
-    const edges = [
-      [0, 1], [1, 2], [2, 3], [3, 0],
-      [4, 5], [5, 6], [6, 7], [7, 4],
-      [0, 4], [1, 5], [2, 6], [3, 7]
-    ];
-
-    edges.forEach(([start, end]) => {
-      this.drawLine(points[start], points[end], color, true);
-    });
-  }
-
   drawLine(v1, v2, color = Color.WHITE, doTransform = false) {
     const p1 = this.toScreenSpace(v1, doTransform);
     const p2 = this.toScreenSpace(v2, doTransform);
 
-    if (p1.z > 0 || p2.z > 0) return; // Skip lines that are behind the camera
+    const oneOfPointsBehind = p1.z > 0 || p2.z > 0;
+    if (oneOfPointsBehind) return;
 
     this.ctx.beginPath();
     this.ctx.moveTo(p1.x, p1.y);
@@ -200,7 +186,7 @@ export class Camera3D extends GNode3D {
     * @param { Color } [color=Color.WHITE]
     */
   drawCircle(center, radius, color = Color.WHITE) {
-    const p = this.toScreenSpace(center);
+    const p = this.toScreenSpace(center.applyTransform(this.transform.inverse));
     if (p.z > 0) return; // Skip circles that are behind the Camera3D
     this.ctx.beginPath();
     this.ctx.arc(p.x, p.y, Math.max(0.001, 1.0 - radius / p.z), 0, Math.PI * 2);
@@ -211,14 +197,16 @@ export class Camera3D extends GNode3D {
     this.ctx.stroke();
   }
 
-  /** @param { Vec3 } point */
+  /** 
+    * @param { Vec3 } point 
+    * @param { boolean } [doTransform=false] - Whether to apply the inverse transform of the Camera3D
+    */
   toScreenSpace(point, doTransform = false) {
     if (doTransform) {
       point = point.applyTransform(this.transform.inverse);
     }
 
     const z = -Math.max(-point.z, 0.001); // Prevent division by zero
-
     const x = (point.x / z) * this.perspective;
     const y = (point.y / z) * this.perspective;
 

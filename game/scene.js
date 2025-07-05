@@ -8,7 +8,7 @@ import { Fog } from '../core/fog.js';
 
 import { Terrain } from './terrain.js';
 import { Package } from './package.js';
-import { MountainsGeometry } from './mountains.js';
+import { CloudsGeometry } from './clouds.js';
 
 
 export const GameScene = new class extends Scene {
@@ -16,8 +16,8 @@ export const GameScene = new class extends Scene {
   terrain = this.addChild(new Terrain());
   player = this.addChild(new Player());
   package = this.addChild(new Package());
-  mountains = this.addChild(new MountainsGeometry());
-  skyColor = new Color("#2d6170").hueRotate(30);
+  clouds= this.addChild(new CloudsGeometry());
+  skyColor = new Color("#2d6170").mix(Color.WHITE, 0.5).hueRotate(60);
 
   async begin() {
     this.addChild(new DirectionalLight(

@@ -13,6 +13,14 @@ export class GNode3D extends GNode {
     this.transform.basis = value;
   }
 
+  set scale(value) {
+    this.transform.scale = value;
+  }
+
+  get scale() {
+    return this.transform.scale;
+  }
+
   get position() {
     return this.transform.position;
   }
@@ -35,6 +43,14 @@ export class GNode3D extends GNode {
     } else {
       this.transform.position = value;
     }
+  }
+
+  get globalScale() {
+    if (this.parent && this.parent instanceof GNode3D) {
+      return this.parent.globalTransform.scale.mul(this.transform.scale);
+    }
+
+    return this.transform.basis.scale;
   }
 
   /**

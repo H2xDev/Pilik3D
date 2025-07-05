@@ -11,6 +11,8 @@ export class Package extends GeometryNode {
 
   enterTree() {
     this.assignGeometry(new BoxGeometry(1, 1, 1, Color.YELLOW));
+    const outline = this.addChild(new GeometryNode().assignGeometry(new BoxGeometry(-1.05, -1.05, -1.05, Color.WHITE)))
+    outline.emissive = true;
     this.light = this.addChild(new PointLight(Color.YELLOW, 5));
   }
 

@@ -4,9 +4,14 @@ import { Vec3 } from "./vec3.js";
 export class Transform3D {
   basis = Basis.IDENTITY;
   position = Vec3.ZERO;
+  scale = Vec3.ONE;
 
   static get IDENTITY() {
     return new Transform3D(Basis.IDENTITY, Vec3.ZERO);
+  }
+
+  constructor(basis = Basis.IDENTITY, position = Vec3.ZERO, scale = Vec3.ONE) {
+    Object.assign(this, { basis, position, scale });
   }
 
   get inverse() {
@@ -25,11 +30,8 @@ export class Transform3D {
       .add(this.basis.y.mul(other.position.y))
       .add(this.basis.z.mul(other.position.z))
       .add(this.position);
+    const newScale = this.scale.mul(other.scale);
   
-    return new Transform3D(newBasis, newPosition);
-  }
-
-  constructor(basis = Basis.IDENTITY, position = Vec3.ZERO) {
-    Object.assign(this, { basis, position });
+    return new Transform3D(newBasis, newPosition, newScale);
   }
 }

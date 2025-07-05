@@ -2,19 +2,32 @@ import { Vec3 } from '../core/vec3.js';
 import { GeometryNode } from '../core/geometryNode.js';
 import { GNode3D } from '../core/node3d.js';
 import { getNormal } from '../core/utils.js';
-import { Basis } from '../core/basis.js';
 import { Color } from '../core/color.js';
 import { OBJImporter } from '../core/importers/obj.js';
+
+const GRAVITY = 2.81; // Gravity constant
 
 export class Player extends GNode3D {
   velocity = Vec3.ZERO;
   keyboard = {};
+
+  /** @type { GNode3D } */
   model = null;
-  modelBasis = Basis.IDENTITY.rotate(Vec3.UP, Math.PI);
-  turnValue = 0;
+  turnVelocity = 0;
   movementSpeed = 4;
+  turnSpeed = 5;
   debug = false;
   isOnGround = false;
+
+  /**
+    * @param { number } dt - Delta time in seconds.
+    */
+  process(dt) {
+    if (!this.model) return;
+    this.processCamera(dt);
+    this.processMovement(dt);
+    this.processGravity(dt);
+  }
 
   get camera() {
     return this.scene.camera;
@@ -23,68 +36,87 @@ export class Player extends GNode3D {
   get targetCameraPosition() {
     if (!this.model) return this.position.add(Vec3.UP.mul(0.6));
 
-    return this.position
-      .add(this.model.globalTransform.basis.forward.mul(5))
-      .add(this.model.globalTransform.basis.up.mul(3.0));
+    const pos = this.position
+      .add(this.model.globalTransform.basis.forward
+        .mul(-2.0)
+        .add(this.camera.basis.forward
+          .mul(this.velocity.length * 0.1)))
+      .add(this.model.globalTransform.basis.up
+        .mul(0.5));
+
+    // NOTE: Prevent camera from going below terrain
+    const minY = this.scene.terrain.getHeightAt(pos.x, pos.z) + 0.25;
+    pos.y = Math.max(pos.y, minY);
+
+    return pos;
   }
 
   async enterTree() {
-    const modelData = await fetch('/assets/sedan-sports.obj').then(res => res.text());
+    const modelData = await fetch('/assets/car.obj').then(res => res.text());
     this.model = new GeometryNode()
       .assignGeometry(new OBJImporter(modelData));
 
-    this.model.basis = this.model.basis.multiply(this.modelBasis);
-
     this.addChild(this.model);
 
-    window.addEventListener('keydown', (e) => this.keyboard[e.key] = 1);
-    window.addEventListener('keyup', (e) => this.keyboard[e.key] = 0);
+    window.addEventListener('keydown', (e) => {
+      this.keyboard[e.code] = 1
+    });
+    window.addEventListener('keyup', (e) => this.keyboard[e.code] = 0);
 
     this.camera.position = this.targetCameraPosition;
     this.camera.basis = this.transform.basis;
+    this.model.scale = new Vec3(0.125, 0.125, 0.125);
     this.model.debug.showAABB = this.debug;
+
+    this.model.polygonProgram = (polygon, camera3d) => {
+      polygon.color = Color.GREEN;
+      return polygon;
+    }
   }
 
   processCamera(dt) {
-    if (!this.model) return;
     this.camera.position = this.camera.position
       .lerp(this.targetCameraPosition, 10 * dt);
 
     this.camera.basis = this.camera.basis
-      .slerp(this.model.globalTransform.basis, 4 * dt);
+      .slerp(this.model.globalTransform.basis.rotate(this.model.basis.up, this.turnVelocity * 0.2), 4 * dt);
   }
 
   processMovement(dt) {
-    const forward = (this.keyboard['w'] ?? 0) - (this.keyboard['s'] ?? 0);
-    const rotateRight = (this.keyboard['d'] ?? 0) - (this.keyboard['a'] ?? 0);
-
-    this.turnValue -= (this.turnValue - rotateRight) * dt * 5;
-    if (!this.model) return;
+    const forward = (this.keyboard['KeyW'] ?? 0) - (this.keyboard['KeyS'] ?? 0);
+    const rotateRight = (this.keyboard['KeyD'] ?? 0) - (this.keyboard['KeyA'] ?? 0);
 
     this.position = this.position
-      .add(this.velocity.mul(dt)
-      .applyBasis(this.basis));
+      .add(this.velocity.mul(dt));
+
 
     if (this.isOnGround) {
-      this.velocity = this.velocity
-        .add(Vec3.FORWARD.mul(this.movementSpeed * dt * forward));
-
-      const sign = this.velocity.dot(Vec3.FORWARD) < 0 ? 1 : -1;
-      const rotationSpeed = Math.min(1, this.velocity.length) * sign;
-
-      this.basis
-        .rotate(this.basis.up, this.turnValue * rotationSpeed * dt);
+      this.rotationSign = this.velocity.mul(Vec3.XZ).dot(this.model.basis.forward) < 0 ? 1 : -1;
+      this.turnVelocity += (rotateRight * forward) * this.velocity.length * -dt;
+      this.turnVelocity -= this.turnVelocity * dt;
 
       this.velocity = this.velocity
-        .lerp(Vec3.ZERO, dt); // Dampen the velocity
+        .add(this.model.basis.forward.mul(this.movementSpeed * dt * forward));
+
+      this.velocity = this.velocity
+        .lerp(Vec3.ZERO, dt);
+
+      if (this.keyboard['Space']) {
+        this.velocity = this.velocity.add(this.model.basis.up);
+      }
+
+      this.model.basis
+        .rotate(this.model.basis.up, this.turnVelocity * dt);
+    } else {
+      this.model.basis.rotate(Vec3.UP, this.turnVelocity * dt);
     }
   }
 
   processGravity(dt) {
-    const p1 = this.basis.forward.mul(0.3).add(this.basis.left.mul(0.125)).add(this.position);
-    const p2 = this.basis.forward.mul(0.3).add(this.basis.right.mul(0.125)).add(this.position);
-    const p3 = this.basis.forward.mul(-0.3).add(this.basis.left.mul(0.125)).add(this.position);
-    const p4 = this.basis.forward.mul(-0.3).add(this.basis.right.mul(0.125)).add(this.position);
+    const p1 = this.model.basis.forward.mul(0.3).add(this.model.basis.left.mul(0.125)).add(this.position);
+    const p2 = this.model.basis.forward.mul(0.3).add(this.model.basis.right.mul(0.125)).add(this.position);
+    const p3 = this.model.basis.forward.mul(-0.3).add(this.model.basis.left.mul(0.125)).add(this.position);
+    const p4 = this.model.basis.forward.mul(-0.3).add(this.model.basis.right.mul(0.125)).add(this.position);
 
     const h1 = p1.mul(Vec3.XZ).add(Vec3.UP.mul(this.scene.terrain.getHeightAt(p1.x, p1.z)));
     const h2 = p2.mul(Vec3.XZ).add(Vec3.UP.mul(this.scene.terrain.getHeightAt(p2.x, p2.z)));
@@ -106,7 +138,7 @@ export class Player extends GNode3D {
     this.isOnGround = this.position.y - 0.01 <= targetY;
 
     if (this.position.y - 0.01 > targetY) {
-      this.velocity = this.velocity.add(Vec3.UP.mul(-2.0 * dt)); // Gravity
+      this.velocity = this.velocity.add(Vec3.UP.mul(-GRAVITY * dt)); // Gravity
     }
 
     if (this.debug) {
@@ -118,26 +150,13 @@ export class Player extends GNode3D {
     if (this.isOnGround) {
       const rotationSpeed = Math.min(1, this.velocity.length);
 
-      this.modelBasis = Object.assign(Basis.IDENTITY, { up: normal });
-      this.model.basis = this.model.basis.slerp(this.modelBasis, dt * 3);
-
+      this.model.basis.up = normal.inverted; // Align the model's up vector with the terrain normal
       // Turning tilt
-      this.model.basis.rotate(this.basis.forward, this.turnValue * 0.0125 * Math.PI / 2 * rotationSpeed); 
-
-      this.model.basis.scale = new Vec3(0.125, 0.125, 0.125);
+      this.model.basis.rotate(this.model.basis.forward, this.turnVelocity * -0.0125 * Math.PI / 2 * rotationSpeed); 
     }
 
     const targetPos = Math.max(targetY, this.position.y);
     this.position.y -= (this.position.y - targetPos) * dt * 4;
     this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 10;
-  }
-
-  /**
-    * @param { number } dt - Delta time in seconds.
-    */
-  process(dt) {
-    this.processCamera(dt);
-    this.processMovement(dt);
-    this.processGravity(dt);
   }
 }

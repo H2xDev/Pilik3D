@@ -1,3 +1,7 @@
+/**
+  * Perlin noise generator
+  * @author joeiddon<iddonjoe@gmail.com>
+  */
 export class Perlin {
   static instance = new Perlin();
 

@@ -33,6 +33,10 @@ export class Color {
     return new Color(1, 0, 1);
   }
 
+  static get ORANGE() {
+    return new Color(1, 0.5, 0);
+  }
+
   r = 0;
   g = 0;
   b = 0;
@@ -147,5 +151,9 @@ export class Color {
   assign(ctx) {
     ctx.fillStyle = `rgba(${Math.round(this.r * 255)}, ${Math.round(this.g * 255)}, ${Math.round(this.b * 255)}, 1)`;
     ctx.strokeStyle = `rgba(${Math.round(this.r * 255)}, ${Math.round(this.g * 255)}, ${Math.round(this.b * 255)}, 1)`;
+  }
+
+  clone() {
+    return new Color(this.r, this.g, this.b);
   }
 }

@@ -35,6 +35,7 @@ export class GeometryNode extends GNode3D {
   }
 
   passDepth = false;
+  emissive = false;
 
   enterTree() {
     this.updateGeometry();
@@ -51,10 +52,16 @@ export class GeometryNode extends GNode3D {
     return this;
   }
 
-  updateGeometry() {
+  updateGeometry(recalculateNormals = false) {
     this.polygons = [];
     let minX = Infinity, minY = Infinity, minZ = Infinity;
     let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+    if (recalculateNormals) {
+      // NOTE: Clean normal array since in this case 
+      //       they don't need to be preserved anymore
+      this.normals = [];
+    }
 
     for (let i = 0; i < this.indices.length; i += 3) {
       const pi = (i / 3) >> 0;
@@ -62,9 +69,6 @@ export class GeometryNode extends GNode3D {
       const v2 = this.vertices[this.indices[i + 1]];
       const v3 = this.vertices[this.indices[i + 2]];
       const color = this.colors[pi] || Color.WHITE;
-      const n1 = this.normals[this.normalIndices[i] || this.indices[i]];
-      const n2 = this.normals[this.normalIndices[i + 1] || this.indices[i + 1]];
-      const n3 = this.normals[this.normalIndices[i + 2] || this.indices[i + 2]];
 
       minX = Math.min(minX, v1.x, v2.x, v3.x);
       minY = Math.min(minY, v1.y, v2.y, v3.y);
@@ -74,8 +78,18 @@ export class GeometryNode extends GNode3D {
       maxZ = Math.max(maxZ, v1.z, v2.z, v3.z);
 
       let normal = Vec3.UP;
-      if (n1 && n2 && n3) {
-        normal = n1.add(n2).add(n3).div(3).normalized;
+
+      if (!recalculateNormals) {
+        const n1 = this.normals[this.normalIndices[i] || this.indices[i]];
+        const n2 = this.normals[this.normalIndices[i + 1] || this.indices[i + 1]];
+        const n3 = this.normals[this.normalIndices[i + 2] || this.indices[i + 2]];
+        if (n1 && n2 && n3) {
+          normal = n1.add(n2).add(n3).div(3).normalized;
+        }
+      } else {
+        const edge1 = v2.sub(v1);
+        const edge2 = v3.sub(v1);
+        normal = edge1.cross(edge2).normalized.inverted;
       }
 
       this.polygons.push(Object.assign(new Polygon(), {

@@ -57,6 +57,10 @@ export class Vec3 {
     return new Vec3(this.x / len, this.y / len, this.z / len);
   }
 
+  get inverted() {
+    return new Vec3(-this.x, -this.y, -this.z);
+  }
+
   constructor(x = 0, y = 0, z = 0) {
     Object.assign(this, { x, y, z });
   }
@@ -166,9 +170,13 @@ export class Vec3 {
     return this;
   }
 
+  clone() {
+    return new Vec3(this.x, this.y, this.z);
+  }
+
   /** @param { import('./transform3d.js').Transform3D } transform */
   applyTransform(transform) {
-    return this.applyBasis(transform.basis).add(transform.position);
+    return this.mul(transform.scale).applyBasis(transform.basis).add(transform.position);
   }
 
   /** @param { import('./basis.js').Basis } basis */

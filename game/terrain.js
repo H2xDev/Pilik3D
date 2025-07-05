@@ -3,6 +3,7 @@ import { PlaneGeometry } from "../core/importers/plane.js";
 import { Vec3 } from "../core/vec3.js";
 import { Perlin } from "../core/perlin.js";
 import { getNormal } from "../core/utils.js";
+import { Color } from "../core/color.js";
 
 const perlin = new Perlin();
 const GRID_SIZE = 5;
@@ -42,11 +43,24 @@ export class Terrain extends GeometryNode {
     this.positionHash = gridPos;
   }
 
+  /**
+    * @param { number } x - The x coordinate.
+    * @param { number } z - The z coordinate.
+    */
   getHeightAt(x, z) {
-    x = Math.floor(x / 0.1) * 0.1; // Snap to grid
-    z = Math.floor(z / 0.1) * 0.1; // Snap to grid
+    const precision = 0.01; // Adjust precision for Perlin noise
+    x = Math.floor(x / precision) * precision;
+    z = Math.floor(z / precision) * precision;
+
+    let multiplier = 2.0;
+    const isSpike = Math.sin(x+z) > 0.5 && Math.sin(x+z) < 1.5;
+
+    // if (isSpike) {
+    //   multiplier = 8.0; // Increase height for spikes
+    // }
+
     // Generate height using Perlin noise
-    return perlin.get(x / GRID_SIZE, z / GRID_SIZE) * 2.0;
+    return perlin.get(x / GRID_SIZE, z / GRID_SIZE) * multiplier;
   }
 
   getPositionAt(x, z) {
@@ -71,7 +85,6 @@ export class Terrain extends GeometryNode {
 
     const gridPos = this.player.position.div(GRID_SIZE).round();
     const vertices = this.vertices;
-    const normals = this.normals;
 
     for (let i = 0; i < vertices.length; i++) {
       const v = vertices[i]
@@ -82,25 +95,16 @@ export class Terrain extends GeometryNode {
       v.x = gridPos.x * GRID_SIZE + ix - CHUNK_SIZE * 0.5;
       v.z = gridPos.z * GRID_SIZE + iz - CHUNK_SIZE * 0.5;
       v.y = this.getHeightAt(v.x, v.z);
-
-      const h1 = this.getHeightAt(v.x, v.z);
-      const h2 = this.getHeightAt(v.x + 1, v.z);
-      const h3 = this.getHeightAt(v.x, v.z + 1);
-
-      const p1 = new Vec3(v.x, h1, v.z);
-      const p2 = new Vec3(v.x + 1, h2, v.z);
-      const p3 = new Vec3(v.x, h3, v.z + 1);
-
-      const normal = getNormal(p1, p2, p3).mul(-1).normalized;
-
-      if (normal.y < 0) {
-        // Flip the normal if it's pointing downwards
-        normal.y *= -1;
-      }
-
-      normals[i] = normal;
     }
 
-    this.updateGeometry();
+    this.updateGeometry(true);
+  }
+
+  polygonProgram(p, camera) {
+    p = p.clone();
+    const center = p.center.applyTransform(camera.transform);
+    p.color = p.color.mix(Color.GREEN.mul(0.13), 0.85).hueRotate(center.y * 200);
+
+    return p;
   }
 }

@@ -32,9 +32,19 @@ export class OBJImporter extends GeometryBase {
           const vindices = args.map(arg => arg.split('/')[0]).map(Number).map(i => i - 1); // OBJ indices are 1-based
           const nindices = args.map(arg => arg.split('/')[2]).map(Number).map(i => i - 1); // OBJ normals are also 1-based
 
-          this.indices.push(...vindices);
-          this.normalIndices.push(...nindices);
-          this.colors.push(currentColor); // Use the current color for this face
+          const has4Vertices = vindices.length === 4;
+
+          if (has4Vertices) {
+            // Split quad into two triangles
+            this.indices.push(vindices[0], vindices[1], vindices[2]);
+            this.indices.push(vindices[0], vindices[2], vindices[3]);
+            this.normalIndices.push(nindices[0], nindices[1], nindices[2]);
+            this.normalIndices.push(nindices[0], nindices[2], nindices[3]);
+          } else {
+            this.indices.push(...vindices);
+            this.normalIndices.push(...nindices);
+            this.colors.push(currentColor); // Use the current color for this face
+          }
           break;
 
         default: break;

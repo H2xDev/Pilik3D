@@ -2,6 +2,11 @@ import { assert } from "./utils.js";
 import { UUID } from "./uuid.js";
 
 export class GNode {
+  static Events = {
+    CHILD_ADDED: "childAdded",
+    CHILD_REMOVED: "childRemoved",
+  }
+
   id = UUID.generate();
 
   /** @type { GNode[] } */
@@ -22,6 +27,9 @@ export class GNode {
 
   /** @virtual */
   enterTree() {}
+  
+  /** @virtual */
+  beforeDestroy() {}
 
   /** 
    * @param { number } dt - Delta time since last frame
@@ -41,7 +49,11 @@ export class GNode {
     this.children.forEach(child => child._process(dt, ctx));
   }
 
-  /** @param { GNode } child - The child node to add */
+  /** 
+    * @template { GNode } T
+    * @param { T } child - The child node to add 
+    * @returns { T } - The added child node
+    */
   addChild(child) {
     assert(child instanceof GNode, "Child must be an instance of GNode");
 
@@ -50,7 +62,42 @@ export class GNode {
     child.enterTree();
     child.children.forEach(c => c.enterTree());
 
+    this.trigger(GNode.Events.CHILD_ADDED, child);
+    this.parent?.trigger(GNode.Events.CHILD_ADDED, child);
+
     return child;
+  }
+
+  /**
+    * @param { GNode } child - The child node to remove
+    */
+  removeChild(child) {
+    assert(child instanceof GNode, "Child must be an instance of GNode");
+
+    const index = this.children.indexOf(child);
+    if (index !== -1) {
+      child.beforeDestroy?.();
+
+      this.children.splice(index, 1);
+      child.parent = null;
+      this.trigger(GNode.Events.CHILD_REMOVED, child);
+    }
+  }
+
+  /**
+    * @template { typeof GNode } T
+    * @param { T } nodeClass - The child node to remove
+    * @param { GNode } node - The child node to remove
+    *
+    * @returns { InstanceType<T>[] } - An array of nodes of the specified class
+    */
+  getChildrenByClass(nodeClass, node = this) {
+    return node.children.reduce((acc, child) => {
+      if (child instanceof nodeClass) {
+        acc.push(child);
+      }
+      return acc.concat(this.getChildrenByClass(nodeClass, child));
+    }, []);
   }
 
   /**
@@ -81,6 +128,13 @@ export class GNode {
     const event = new CustomEvent(`${this.id}:${eventName}`, { detail });
     document.dispatchEvent(event);
     return this;
+  }
+
+  triggerGlobal(eventName, detail = {}) {
+    this.trigger(eventName, detail);
+    if (this.parent) {
+      this.parent.triggerGlobal(eventName, detail);
+    }
   }
 }
 
