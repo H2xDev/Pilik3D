@@ -1,34 +1,31 @@
-// @ts-check
-import { Color } from "./color.js";
-import { GeometryNode } from "./geometryNode.js";
-import { GNode3D } from "./node3d.js";
-import { PointLight } from "./light.js";
-import { DirectionalLight } from "./directionalLight.js";
-import { Polygon } from "./polygon.js";
-import { DEG_TO_RAD } from "./utils.js";
-import { Vec3 } from "./vec3.js";
-import { Fog } from "./fog.js";
-import { AABB } from "./aabb.js";
+import { 
+  Color, 
+  GeometryNode, 
+  GNode3D, 
+  PointLight, 
+  DirectionalLight, 
+  Polygon,
+  Vec3,
+  Fog,
+  DEG_TO_RAD,
+  AABB,
+} from "./index.js";
 
 export class Camera3D extends GNode3D {
-  /**
-    * @type { Camera3D }
-    */
+  /** @type { Camera3D } */
   static current = null;
 
   fov = 50;
-  perspective = 1;
-  ctx = null;
   far = 10;
+  perspective = 1;
 
-  /** 
-    * @type { GeometryNode[] }
-    */
+  /** @type { CanvasRenderingContext2D } */
+  ctx = null;
+
+  /** @type { GeometryNode[] } */
   geometryNodes = [];
 
-  /**
-    * @type { PointLight[] }
-    */
+  /** @type { PointLight[] } */
   lightNodes = [];
 
   constructor() {
@@ -64,7 +61,15 @@ export class Camera3D extends GNode3D {
         const polygonFacingAway = polygon.normal.dot(viewDir) > 0;
         if (polygonFacingAway) return null;
 
-        const polygonIsOutOfFrustum = viewDir.dot(this.basis.forward) < Math.cos(this.fov * DEG_TO_RAD);
+        const dotRange = Math.cos(this.fov * DEG_TO_RAD);
+        const viewV1 = polygon.v1.sub(this.transform.position).normalized;
+        const viewV2 = polygon.v2.sub(this.transform.position).normalized;
+        const viewV3 = polygon.v3.sub(this.transform.position).normalized;
+        const v1OutOfFrustum = viewV1.dot(this.basis.forward) < dotRange;
+        const v2OutOfFrustum = viewV2.dot(this.basis.forward) < dotRange;
+        const v3OutOfFrustum = viewV3.dot(this.basis.forward) < dotRange;
+
+        const polygonIsOutOfFrustum = v1OutOfFrustum && v2OutOfFrustum && v3OutOfFrustum;
         if (polygonIsOutOfFrustum) return null;
 
         const resultPolygon = polygon.applyTransform(this.globalTransform.inverse);
@@ -153,8 +158,8 @@ export class Camera3D extends GNode3D {
     this.ctx.closePath();
     color.assign(this.ctx);
     this.ctx.fill();
-    this.ctx.lineJoin = 'round';
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = 1;
+    // this.ctx.strokeStyle = "black";
     this.ctx.stroke();
   }
 

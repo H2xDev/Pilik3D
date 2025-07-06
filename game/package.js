@@ -1,8 +1,5 @@
-import { Color } from "../core/color.js";
-import { GeometryNode } from "../core/geometryNode.js";
-import { BoxGeometry } from "../core/importers/box.js";
-import { PointLight } from "../core/light.js";
-import { Vec3 } from "../core/vec3.js";
+import { Color, GeometryNode, PointLight, Vec3 } from "@core/index.js";
+import { BoxGeometry } from "@core/importers/box.js";
 
 export class Package extends GeometryNode {
   startPos = null;

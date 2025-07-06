@@ -23,9 +23,14 @@ export class PointLight extends GNode3D {
       .applyTransform(this.globalTransform)
       .applyTransform(camera.transform.inverse);
 
-    const delta = lightPos.sub(polygon.center)
+    const delta1 = lightPos.sub(polygon.v1)
+    const delta2 = lightPos.sub(polygon.v2);
+    const delta3 = lightPos.sub(polygon.v3);
+    const delta = lightPos.sub(polygon.center);
+
     const lightDir = delta.normalized;
-    const distance = delta.length;
+
+    const distance = Math.min(delta1.length, delta2.length, delta3.length, delta.length);
     const percent = Math.max(0, 1 - distance / this.radius);
 
     if (percent <= 0) return inColor;

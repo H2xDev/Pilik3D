@@ -1,11 +1,5 @@
-import { Scene } from '../core/scene.js';
-import { Camera3D } from '../core/camera3d.js';
-import { Player } from '../game/player.js';
-import { Vec3 } from '../core/vec3.js';
-import { DirectionalLight } from '../core/directionalLight.js';
-import { Color } from '../core/color.js';
-import { Fog } from '../core/fog.js';
-
+import { Scene, Camera3D, Vec3, DirectionalLight, Color, Fog } from '@core/index.js';
+import { Player } from './player.js';
 import { Terrain } from './terrain.js';
 import { Package } from './package.js';
 import { CloudsGeometry } from './clouds.js';

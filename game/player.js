@@ -5,7 +5,7 @@ import { getNormal } from '../core/utils.js';
 import { Color } from '../core/color.js';
 import { OBJImporter } from '../core/importers/obj.js';
 import { getAcceleration, getFrictionRate } from './utils.js';
-import { Camera3D } from '../core/camera3d.js';
+import { Basis } from '@core/basis.js';
 
 const GRAVITY = 2.81; // Gravity constant
 
@@ -46,7 +46,7 @@ export class Player extends GNode3D {
         .add(this.camera.basis.forward
           .mul(this.velocity.length * 0.1)))
       .add(this.model.globalTransform.basis.up
-        .mul(0.0));
+        .mul(0.5));
 
     // NOTE: Prevent camera from going below terrain
     const minY = this.scene.terrain.getHeightAt(pos.x, pos.z) + 0.25;
@@ -80,8 +80,11 @@ export class Player extends GNode3D {
     this.camera.position = this.camera.position
       .lerp(this.targetCameraPosition, 10 * dt);
 
+    const targetBasis = this.model.globalTransform.basis.rotate(this.model.basis.up, this.turnVelocity * 0.2);
+    // targetBasis.rotate(this.camera.basis.right, -0.9);
+
     this.camera.basis = this.camera.basis
-      .slerp(this.model.globalTransform.basis.rotate(this.model.basis.up, this.turnVelocity * 0.2), 4 * dt);
+      .slerp(targetBasis, 4 * dt);
 
     this.camera.fov = 50 + this.velocity.length * 10;
   }
@@ -157,7 +160,7 @@ export class Player extends GNode3D {
     if (this.isOnGround) {
       const rotationSpeed = Math.min(1, this.velocity.length);
 
-      this.model.basis.up = normal.inverted; // Align the model's up vector with the terrain normal
+      this.model.basis.up = normal; // Align the model's up vector with the terrain normal
       // Turning tilt
       this.model.basis.rotate(this.model.basis.forward, this.turnVelocity * -0.0125 * Math.PI / 2 * rotationSpeed); 
     }

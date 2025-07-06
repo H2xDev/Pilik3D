@@ -1,7 +1,5 @@
-import { Color } from "../core/color.js";
-import { GeometryNode } from "../core/geometryNode.js";
+import { Color, GeometryNode, Vec3 } from "@core/index.js";
 import { OBJImporter } from "../core/importers/obj.js";
-import { Vec3 } from "../core/vec3.js";
 
 export class CloudsGeometry extends GeometryNode {
   passDepth = true;
@@ -30,7 +28,7 @@ export class CloudsGeometry extends GeometryNode {
     p.v1.y += Math.sin(Date.now() / 1000 + p.v1.length) * 0.5;
     p.v2.y += Math.sin(Date.now() / 1000 + p.v2.length) * 0.5;
     p.v3.y += Math.sin(Date.now() / 1000 + p.v3.length) * 0.5;
-    p.color = Color.CYAN.hueRotate(p.v1.length * 10);
+    p.color = Color.CYAN.hueRotate(p.center.length * 10);
     p.recalculateNormal();
 
     return p;

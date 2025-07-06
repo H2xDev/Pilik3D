@@ -40,7 +40,7 @@ export class Basis {
   }
 
   set forward(value) {
-    this.z = value.normalized;
+    this.z = value.normalized.mul(-1);
     this.x = this.y.cross(this.z).normalized;
     this.y = this.z.cross(this.x).normalized;
   }
@@ -51,12 +51,12 @@ export class Basis {
 
   set up(value) {
     this.y = value.normalized;
-    this.z = this.x.cross(this.y).normalized;
     this.x = this.y.cross(this.z).normalized;
+    this.z = this.x.cross(this.y).normalized;
   }
 
   get right() {
-    return this.x;
+    return this.x.mul(-1);
   }
 
   get down() {
@@ -64,7 +64,7 @@ export class Basis {
   }
 
   get left() {
-    return this.x.mul(-1);
+    return this.x;
   }
 
   get backward() {
@@ -126,11 +126,10 @@ export class Basis {
     * @param { number } t
     */
   slerp(basis, t) {
-    const x = this.x.slerp(basis.x, t);
-    const y = this.y.slerp(basis.y, t);
-    const z = this.z.slerp(basis.z, t);
-
-    return new Basis(x, y, z);
+    const forward = this.forward.slerp(basis.forward, t).normalized;
+    const up = this.up.slerp(basis.up, t).normalized;
+  
+    return new Basis().lookAt(forward, up);
   }
 
   /**
@@ -195,5 +194,14 @@ export class Basis {
       y: ${this.y.toString()},
       z: ${this.z.toString()}
     )`;
+  }
+
+  /**
+    * @param { Vec3 } direction
+    */
+  static lookAt(direction, up = Vec3.UP) {
+    const basis = new Basis();
+    basis.lookAt(direction, up);
+    return basis;
   }
 }

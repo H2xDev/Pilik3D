@@ -41,14 +41,14 @@ export class GeometryNode extends GNode3D {
     this.updateGeometry();
   }
 
-  assignGeometry(geometry) {
+  assignGeometry(geometry, recalculateNormals = false) {
     this.vertices = geometry.vertices;
     this.normals = geometry.normals;
     this.indices = geometry.indices;
     this.normalIndices = geometry.normalIndices;
     this.colors = geometry.colors;
 
-    this.updateGeometry();
+    this.updateGeometry(recalculateNormals);
     return this;
   }
 

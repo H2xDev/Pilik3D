@@ -1,9 +1,5 @@
-import { GeometryNode } from "../core/geometryNode.js";
+import { GeometryNode, Vec3, Perlin, getNormal, Color } from "@core/index.js";
 import { PlaneGeometry } from "../core/importers/plane.js";
-import { Vec3 } from "../core/vec3.js";
-import { Perlin } from "../core/perlin.js";
-import { getNormal } from "../core/utils.js";
-import { Color } from "../core/color.js";
 
 const perlin = new Perlin();
 const GRID_SIZE = 5;
@@ -53,11 +49,6 @@ export class Terrain extends GeometryNode {
     z = Math.floor(z / precision) * precision;
 
     let multiplier = 2.0;
-    const isSpike = Math.sin(x+z) > 0.5 && Math.sin(x+z) < 1.5;
-
-    // if (isSpike) {
-    //   multiplier = 8.0; // Increase height for spikes
-    // }
 
     // Generate height using Perlin noise
     return perlin.get(x / GRID_SIZE, z / GRID_SIZE) * multiplier;
