@@ -51,7 +51,9 @@ export class Terrain extends GeometryNode {
     let multiplier = 2.0;
 
     // Generate height using Perlin noise
-    return perlin.get(x / GRID_SIZE, z / GRID_SIZE) * multiplier;
+    const d = perlin.get(x / GRID_SIZE / 1, z / GRID_SIZE / 1) * multiplier;
+
+    return Math.pow(d, 5);
   }
 
   getPositionAt(x, z) {

@@ -12,6 +12,7 @@ export class Input extends GNode {
     ...GNode.Events,
     ACTION_PRESSED: "actionPressed",
     ACTION_RELEASED: "actionReleased",
+    ANY_PRESSED: "anyPressed",
   }
 
   /**
@@ -23,6 +24,7 @@ export class Input extends GNode {
     document.addEventListener("keydown", (event) => this.processActions(event.code, true));
     document.addEventListener("keyup", (event) => this.processActions(event.code, false));
 
+
     for (const actionName in actions) {
       this.registerAction(actionName, actions[actionName]);
     }
@@ -30,6 +32,10 @@ export class Input extends GNode {
 
   /** @param { string } keyCode */
   processActions(keyCode, pressed) {
+    if (pressed) {
+      this.trigger(Input.Events.ANY_PRESSED, keyCode);
+    }
+
     for (const actionName in this.actions) {
       const action = this.actions[actionName];
       if (!action.key || action.key !== keyCode) continue;

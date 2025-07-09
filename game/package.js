@@ -5,11 +5,18 @@ export class Package extends GeometryNode {
   startPos = null;
   up = Vec3.UP;
   light = null;
+  outline = this.addChild(new GeometryNode().assignGeometry(new BoxGeometry(-1.05, -1.05, -1.05, Color.WHITE)));
+
+  /**
+    * @returns { import("./songManager.js").SongManager }
+    */
+  get songManager() {
+    return this.scene.songManager;
+  }
 
   enterTree() {
     this.assignGeometry(new BoxGeometry(1, 1, 1, Color.YELLOW));
-    const outline = this.addChild(new GeometryNode().assignGeometry(new BoxGeometry(-1.05, -1.05, -1.05, Color.WHITE)))
-    outline.emissive = true;
+    this.outline.emissive = true;
     this.light = this.addChild(new PointLight(Color.YELLOW, 5));
   }
 
@@ -17,6 +24,9 @@ export class Package extends GeometryNode {
     this.basis.rotate(this.basis.up, dt * 2.0);
     this.basis.rotate(this.basis.right, dt * 2.0);
     this.basis.scale = new Vec3(0.25, 0.25, 0.25);
+    const bassuha = 1 + this.songManager.trebleValue * 0.5;
+
+    this.outline.transform.scale = new Vec3(bassuha, bassuha, bassuha);
 
     if (!this.startPos) {
       this.up = this.scene.terrain.getNormalAt(this.position.x, this.position.z);

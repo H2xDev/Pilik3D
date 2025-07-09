@@ -3,6 +3,7 @@ import { Player } from './player.js';
 import { Terrain } from './terrain.js';
 import { Package } from './package.js';
 import { CloudsGeometry } from './clouds.js';
+import { SongManager } from './songManager.js';
 
 
 export const GameScene = new class extends Scene {
@@ -12,6 +13,8 @@ export const GameScene = new class extends Scene {
   package = this.addChild(new Package());
   clouds= this.addChild(new CloudsGeometry());
   skyColor = new Color("#2d6170").mix(Color.WHITE, 0.5).hueRotate(60);
+  songManager = this.addChild(new SongManager());
+
 
   async begin() {
     this.addChild(new DirectionalLight(
@@ -29,5 +32,18 @@ export const GameScene = new class extends Scene {
   bg(deltaTime, ctx) {
     Fog.current.color.assign(ctx);
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  }
+
+  gui(deltaTime, ctx) {
+    ctx.save();
+    ctx.filter = "blur(8px)";
+    ctx.globalAlpha = this.songManager.trebleValue * 0.8;
+    ctx.globalCompositeOperation = "screen";
+    ctx.drawImage(
+      ctx.canvas,
+      0, 0,
+      ctx.canvas.width, ctx.canvas.height
+    );
+    ctx.restore();
   }
 }

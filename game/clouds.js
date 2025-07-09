@@ -4,6 +4,13 @@ import { OBJImporter } from "../core/importers/obj.js";
 export class CloudsGeometry extends GeometryNode {
   passDepth = true;
 
+  /**
+    * @type { import("./songManager.js").SongManager }
+    */
+  get songManager() {
+    return this.scene.songManager;
+  }
+
   constructor() {
     super();
     fetch('/assets/clouds.obj')
@@ -28,6 +35,9 @@ export class CloudsGeometry extends GeometryNode {
     p.v1.y += Math.sin(Date.now() / 1000 + p.v1.length) * 0.5;
     p.v2.y += Math.sin(Date.now() / 1000 + p.v2.length) * 0.5;
     p.v3.y += Math.sin(Date.now() / 1000 + p.v3.length) * 0.5;
+    p.v1 = p.v1.add(p.normal.mul(this.songManager.trebleValue * 0.5));
+    p.v2 = p.v2.add(p.normal.mul(this.songManager.trebleValue * 0.5));
+    p.v3 = p.v3.add(p.normal.mul(this.songManager.trebleValue * 0.5));
     p.color = Color.CYAN.hueRotate(p.center.length * 10);
     p.recalculateNormal();
 

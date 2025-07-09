@@ -29,7 +29,7 @@ export class CylinderGeometry extends GeometryBase {
       this.indices.push(topIndex, bottomIndex, nextTopIndex);
       this.indices.push(nextTopIndex, bottomIndex, nextBottomIndex);
       this.normalIndices.push(topIndex, bottomIndex, nextTopIndex);
-      this.normalIndices.push(nextTopIndex, bottomIndex, nextBottomIndex);
+      this.normalIndices.push(nextTopIndex, bottomIndex, nextBottomIndex)
     }
 
     const topCenterIndex = this.vertices.length; // Index for the top center vertex

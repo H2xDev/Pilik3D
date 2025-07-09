@@ -17,4 +17,5 @@ export * from './tween.js';
 export * from './utils.js';
 export * from './uuid.js';
 export * from './vec3.js';
-
+export * from './input.js';
+export * from './sound.js';

@@ -1,11 +1,6 @@
-import { Vec3 } from '../core/vec3.js';
-import { GeometryNode } from '../core/geometryNode.js';
-import { GNode3D } from '../core/node3d.js';
-import { getNormal } from '../core/utils.js';
-import { Color } from '../core/color.js';
-import { OBJImporter } from '../core/importers/obj.js';
+import { Input, Vec3, GeometryNode, GNode3D, Color, Basis, getNormal, GSound } from '@core/index.js';
+import { OBJImporter } from '@core/importers/obj.js';
 import { getAcceleration, getFrictionRate } from './utils.js';
-import { Basis } from '@core/basis.js';
 
 const GRAVITY = 2.81; // Gravity constant
 
@@ -15,23 +10,24 @@ export class Player extends GNode3D {
 
   /** @type { GeometryNode } */
   model = null;
+  isOnGround = false;
   turnVelocity = 0;
-  movementSpeed = 10;
   turnSpeed = 5;
+  movementSpeed = 10;
+  forwardSpeed = 0;
   friction = 5;
   debug = false;
-  isOnGround = false;
-  forwardSpeed = 0;
+  aim = Basis.IDENTITY;
 
-  /**
-    * @param { number } dt - Delta time in seconds.
-    */
-  process(dt) {
-    if (!this.model) return;
-    this.processCamera(dt);
-    this.processMovement(dt);
-    this.processGravity(dt);
-  }
+  input = new Input({
+    "moveForward": "KeyW",
+    "moveBack": "KeyS",
+    "turnLeft": "KeyA",
+    "turnRight": "KeyD",
+    "jump": "Space"
+  })
+
+  engineLoop = new GSound('/assets/reving.ogg', { loop: true, volume: 0.1 });
 
   get camera() {
     return this.scene.camera;
@@ -62,9 +58,6 @@ export class Player extends GNode3D {
 
     this.addChild(this.model);
 
-    window.addEventListener('keydown', (e) => this.keyboard[e.code] = 1);
-    window.addEventListener('keyup', (e) => this.keyboard[e.code] = 0);
-
     this.camera.position = this.targetCameraPosition;
     this.camera.basis = this.transform.basis;
     this.model.scale = new Vec3(0.125, 0.125, 0.125);
@@ -74,26 +67,60 @@ export class Player extends GNode3D {
       polygon.color = Color.GREEN;
       return polygon;
     }
+
+    window.addEventListener('mousemove', this.processMouse.bind(this));
+    this.input.once(Input.Events.ANY_PRESSED, (keyCode) => {
+      this.engineLoop.play()
+    });
+  }
+
+  /**
+    * @param { number } dt - Delta time in seconds.
+    */
+  process(dt) {
+    if (!this.model) return;
+    this.processCamera(dt);
+    this.processMovement(dt);
+    this.processGravity(dt);
+    this.processSound(dt);
+  }
+
+  processSound(dt) {
+    this.engineLoop.volume = Math.max(Math.min(1, this.velocity.length / 10) * 0.5, 0.1);
+    // this.engineLoop.preservesPitch = false;
+
+    const pitch = this.velocity.length % 2;
+    const pitchLap = Math.floor(this.velocity.length / 2);
+    this.engineLoop.rate = 0.3 + pitch * 0.2 + pitchLap * 0.3;
+  }
+
+  /**
+    * @param { MouseEvent } event - The mouse event.
+    */
+  processMouse(event) {
+    const { movementX, movementY } = event;
+
+    // this.aim.rotate(this.aim.up, -movementX * 0.0025);
+    // this.aim.rotate(this.aim.inverse.right, -movementY * 0.0025);
   }
 
   processCamera(dt) {
     this.camera.position = this.camera.position
       .lerp(this.targetCameraPosition, 10 * dt);
 
-    const targetBasis = this.model.globalTransform.basis.rotate(this.model.basis.up, this.turnVelocity * 0.2);
-    // targetBasis.rotate(this.camera.basis.right, -0.9);
+    const targetBasis = this.aim.multiply(this.model.globalTransform.basis
+      .rotate(this.model.basis.up, this.turnVelocity * 0.2));
 
     this.camera.basis = this.camera.basis
       .slerp(targetBasis, 4 * dt);
 
-    this.camera.fov = 50 + this.velocity.length * 10;
+    this.camera.fov = 50 + this.velocity.length * 5;
   }
 
   processMovement(dt) {
-    const forwardTarget = (this.keyboard['KeyW'] ?? 0) - (this.keyboard['KeyS'] ?? 0);
-    const rotateRight = (this.keyboard['KeyD'] ?? 0) - (this.keyboard['KeyA'] ?? 0);
+    const { x, y } = this.input.getAxis("turnLeft", "turnRight", "moveForward", "moveBack");
 
-    this.forwardSpeed -= (this.forwardSpeed - forwardTarget) * dt;
+    this.forwardSpeed -= (this.forwardSpeed - y) * dt;
 
     this.position = this.position
       .add(this.velocity.mul(dt));
@@ -101,7 +128,7 @@ export class Player extends GNode3D {
 
     if (this.isOnGround) {
       this.rotationSign = this.velocity.mul(Vec3.XZ).dot(this.model.basis.forward) < 0 ? 1 : -1;
-      this.turnVelocity += (rotateRight * this.forwardSpeed) * this.velocity.length * -dt;
+      this.turnVelocity += (x * this.forwardSpeed) * this.velocity.length * dt;
       this.turnVelocity -= this.turnVelocity * dt;
 
       const acceleration = getAcceleration(this.movementSpeed, this.friction, dt);
@@ -162,7 +189,7 @@ export class Player extends GNode3D {
 
       this.model.basis.up = normal; // Align the model's up vector with the terrain normal
       // Turning tilt
-      this.model.basis.rotate(this.model.basis.forward, this.turnVelocity * -0.0125 * Math.PI / 2 * rotationSpeed); 
+      this.model.basis.rotate(this.basis.forward, this.turnVelocity * 0.0625 * Math.PI / 2 * rotationSpeed); 
     }
 
     const targetPos = Math.max(targetY, this.position.y);

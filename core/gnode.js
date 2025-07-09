@@ -120,6 +120,10 @@ export class GNode {
     return unsub;
   }
 
+  once(eventName, callback) {
+    return this.on(eventName, callback, true);
+  }
+
   /**
     * @param { string } eventName - The name of the event to trigger
     * @param { Object } [detail={}] - Additional data to pass with the event
