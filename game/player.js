@@ -28,9 +28,24 @@ export class Player extends GNode3D {
   })
 
   engineLoop = new GSound('/assets/reving.ogg', { loop: true, volume: 0.1 });
+  screetchLoop = new GSound('/assets/tire_screech.ogg', { loop: true, volume: 0.0 });
 
   get camera() {
     return this.scene.camera;
+  }
+
+  get driftValue() {
+    if (!this.model) return 0;
+    if (!this.isOnGround) return 0;
+
+    const velocityXZ = this.velocity.mul(Vec3.XZ).normalized;
+    const forwardXZ = this.model.basis.forward.mul(Vec3.XZ).normalized;
+
+    return Math.abs(1 - velocityXZ.dot(forwardXZ)) * this.velocity.length;
+  }
+
+  get flyValue() {
+    return this.isOnGround ? 0 : Math.abs(this.velocity.length) * 0.1;
   }
 
   get targetCameraPosition() {
@@ -71,6 +86,7 @@ export class Player extends GNode3D {
     window.addEventListener('mousemove', this.processMouse.bind(this));
     this.input.once(Input.Events.ANY_PRESSED, (keyCode) => {
       this.engineLoop.play()
+      this.screetchLoop.play();
     });
   }
 
@@ -87,11 +103,12 @@ export class Player extends GNode3D {
 
   processSound(dt) {
     this.engineLoop.volume = Math.max(Math.min(1, this.velocity.length / 10) * 0.5, 0.1);
-    // this.engineLoop.preservesPitch = false;
 
     const pitch = this.velocity.length % 2;
     const pitchLap = Math.floor(this.velocity.length / 2);
     this.engineLoop.rate = 0.3 + pitch * 0.2 + pitchLap * 0.3;
+
+    this.screetchLoop.volume = Math.min(0.25, this.driftValue / 1);
   }
 
   /**
@@ -108,11 +125,11 @@ export class Player extends GNode3D {
     this.camera.position = this.camera.position
       .lerp(this.targetCameraPosition, 10 * dt);
 
-    const targetBasis = this.aim.multiply(this.model.globalTransform.basis
-      .rotate(this.model.basis.up, this.turnVelocity * 0.2));
+    const targetBasis = this.model.globalTransform.basis;
 
     this.camera.basis = this.camera.basis
-      .slerp(targetBasis, 4 * dt);
+      .slerp(targetBasis, 4 * dt)
+      .rotate(this.basis.up, this.turnVelocity * dt);
 
     this.camera.fov = 50 + this.velocity.length * 5;
   }

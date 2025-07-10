@@ -22,8 +22,9 @@ export class SongManager extends GNode {
   freqData = new Uint8Array(this.analyser.frequencyBinCount);
 
   async enterTree() {
-    this.gain.gain.value = 0.5;
+    this.gain.gain.value = 0.25;
     this.sourceBuffer.connect(this.analyser);
+    this.sourceBuffer.loop = true;
     this.analyser.connect(this.gain);
     this.gain.connect(this.ctx.destination);
     await this.loadSong('/assets/music.mp3');

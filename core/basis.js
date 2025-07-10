@@ -68,7 +68,7 @@ export class Basis {
   }
 
   get backward() {
-    return this.y;
+    return this.z;
   }
 
   get scale() {
