@@ -152,7 +152,6 @@ export class Camera3D extends GNode3D {
     const p1 = this.toScreenSpace(polygon.v1);
     const p2 = this.toScreenSpace(polygon.v2);
     const p3 = this.toScreenSpace(polygon.v3);
-    const avgZ = (p1.z + p2.z + p3.z) / 3;
 
     this.ctx.beginPath();
     this.ctx.moveTo(p1.x, p1.y);

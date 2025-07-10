@@ -150,7 +150,8 @@ export class Player extends GNode3D {
 
     this.camera.basis = this.camera.basis
       .slerp(targetBasis, 4 * dt)
-      .rotate(this.basis.up, this.turnVelocity * -dt);
+      .rotated(this.basis.up, this.turnVelocity * -dt)
+      .multiply(Basis.IDENTITY.rotated(Vec3.FORWARD, this.turnVelocity * 0.5 * dt));
 
     this.camera.fov = 50 + this.velocity.length * 5;
   }

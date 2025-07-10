@@ -100,8 +100,8 @@ export const GameScene = new class extends Scene {
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     ctx.translate(p.x + ctx.canvas.width / 2, p.y + ctx.canvas.height / 2 + 32);
-    ctx.scale(1 + this.songManager.midValue * 0.5, 1 + this.songManager.bassValue * 0.5);
-    ctx.rotate(this.player.turnVelocity * -0.05);
+    ctx.scale(1 + this.songManager.trebleValue * 0.5, 1 + this.songManager.trebleValue * 0.5);
+    ctx.rotate(this.camera.basis.roll);
     ctx.fillStyle = "white";
 
     let trick = this.flyVelocity > 0

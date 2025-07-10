@@ -76,6 +76,18 @@ export class Basis {
     return this.z;
   }
 
+  get roll() {
+    return this.getEulerRelativeToForward().roll;
+  }
+
+  get pitch() {
+    return this.getEulerRelativeToForward().pitch;
+  }
+
+  get yaw() {
+    return this.getEulerRelativeToForward().yaw;
+  }
+
   /**
    * Rotates the basis around a given axis by a specified angle.
    * @param {Vec3} axis - The axis to rotate around.
@@ -107,6 +119,11 @@ export class Basis {
     this.z = oldX.mul(rotationMatrix[6]).add(oldY.mul(rotationMatrix[7])).add(oldZ.mul(rotationMatrix[8]));
   
     return this;
+  }
+
+  rotated(axis, angle) {
+    const basis = new Basis(this.x, this.y, this.z);
+    return basis.rotate(axis, angle);
   }
 
   /**
@@ -172,6 +189,22 @@ export class Basis {
       y: ${this.y.toString()},
       z: ${this.z.toString()}
     )`;
+  }
+
+  getEulerRelativeToForward(referenceUp = Vec3.UP) {
+    const forward = this.forward.normalized;
+    const up = this.up.normalized;
+  
+    const pitch = Math.asin(-forward.y); // forward.y = sin(pitch)
+    const yaw = Math.atan2(forward.x, -forward.z);
+  
+    const projUp = referenceUp.sub(forward.mul(referenceUp.dot(forward))).normalized;
+    const currUp = up.sub(forward.mul(up.dot(forward))).normalized;
+    const dot = projUp.dot(currUp);
+    const cross = forward.dot(projUp.cross(currUp));
+    const roll = Math.atan2(cross, dot);
+  
+    return { pitch, yaw, roll };
   }
 
   /**

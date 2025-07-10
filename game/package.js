@@ -24,7 +24,7 @@ export class Package extends GeometryNode {
     this.basis.rotate(this.basis.up, dt * 2.0);
     this.basis.rotate(this.basis.right, dt * 2.0);
     this.scale = new Vec3(0.25, 0.25, 0.25);
-    const bassuha = 1 + this.songManager.trebleValue * 0.5;
+    const bassuha = 1 + this.songManager.trebleValue;
 
     this.outline.transform.scale = new Vec3(bassuha, bassuha, bassuha);
 

@@ -8,7 +8,7 @@ export class SongManager extends GNode {
   ctx = new AudioContext();
   analyser = Object.assign(this.ctx.createAnalyser(), {
     fftSize: 32,
-    smoothingTimeConstant: 0.0,
+    smoothingTimeConstant: 0.3,
   })
 
   gain = this.ctx.createGain();
@@ -37,9 +37,9 @@ export class SongManager extends GNode {
   process() {
     this.analyser.getByteFrequencyData(this.freqData);
 
-    this.bassValue = Math.pow(this.#calculateAverage(this.freqData, BASS_RANGE), 4);
-    this.midValue = Math.pow(this.#calculateAverage(this.freqData, MID_RANGE), 4);
-    this.trebleValue = Math.pow(this.#calculateAverage(this.freqData, TREBLE_RANGE), 4);
+    this.bassValue = Math.pow(this.#calculateAverage(this.freqData, BASS_RANGE), 8);
+    this.midValue = Math.pow(this.#calculateAverage(this.freqData, MID_RANGE), 8);
+    this.trebleValue = Math.pow(this.#calculateAverage(this.freqData, TREBLE_RANGE), 8);
   }
 
   async loadSong(url) {
