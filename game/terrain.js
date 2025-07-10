@@ -3,7 +3,7 @@ import { PlaneGeometry } from "../core/importers/plane.js";
 
 const perlin = new Perlin();
 const GRID_SIZE = 5;
-const CHUNK_SIZE = 20;
+const CHUNK_SIZE = 15;
 
 export class Terrain extends GeometryNode {
 

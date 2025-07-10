@@ -8,6 +8,7 @@ import { SongManager } from './songManager.js';
 const DRIFT_CONSTANT = 300;
 const FLY_CONSTANT = 500;
 const COOLNESS_TEXT = "Coolness score";
+const FRAMES_TO_CALCULATE_FPS = 60;
 
 export const GameScene = new class extends Scene {
   camera = this.addChild(new Camera3D());
@@ -20,6 +21,9 @@ export const GameScene = new class extends Scene {
   coolScore = 0;
   driftVelocity = 0;
   flyVelocity = 0;
+  time = 0;
+  frames = 0;
+  fps = 0;
 
   async begin() {
     this.addChild(new DirectionalLight(
@@ -45,6 +49,15 @@ export const GameScene = new class extends Scene {
 
     this.coolScore += this.driftVelocity;
     this.coolScore += this.flyVelocity;
+
+    this.time += deltaTime;
+    this.frames++;
+
+    if (this.frames >= FRAMES_TO_CALCULATE_FPS) {
+      this.fps = Math.round(1 / (this.time / this.frames));
+      this.time = 0;
+      this.frames = 0;
+    }
   }
 
   gui(deltaTime, ctx) {
@@ -103,5 +116,9 @@ export const GameScene = new class extends Scene {
     ctx.fillStyle = "white";
     ctx.fillText(trick, 0, 0);
     ctx.restore();
+
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    ctx.fillText(`FPS: ${this.fps}`, 10, 10);
   }
 }

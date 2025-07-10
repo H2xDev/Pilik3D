@@ -50,40 +50,30 @@ export class Basis {
   }
 
   set up(value) {
-    this.y = value.normalized;
-    this.x = this.y.cross(this.z).normalized;
-    this.z = this.x.cross(this.y).normalized;
+    const up = value.normalized;
+    const forward = this.forward;
+    const x = up.cross(forward).normalized;
+    const z = x.cross(up).normalized;
+  
+    this.x = x;
+    this.y = up;
+    this.z = z.mul(-1);
   }
 
   get right() {
-    return this.x.mul(-1);
+    return this.x
   }
 
   get down() {
-    return this.z;
+    return this.y.mul(-1);
   }
 
   get left() {
-    return this.x;
+    return this.x.mul(-1);
   }
 
   get backward() {
     return this.z;
-  }
-
-  get scale() {
-    return new Vec3(
-      this.x.length,
-      this.y.length,
-      this.z.length
-    );
-  }
-
-  set scale(value) {
-    const currentScale = this.scale;
-    if (currentScale.x !== 0) this.x = this.x.div(currentScale.x).mul(value.x);
-    if (currentScale.y !== 0) this.y = this.y.div(currentScale.y).mul(value.y);
-    if (currentScale.z !== 0) this.z = this.z.div(currentScale.z).mul(value.z);
   }
 
   /**
@@ -137,21 +127,9 @@ export class Basis {
     */
   multiply(other) {
     return new Basis(
-      new Vec3(
-        this.x.dot(new Vec3(other.x.x, other.y.x, other.z.x)),
-        this.x.dot(new Vec3(other.x.y, other.y.y, other.z.y)),
-        this.x.dot(new Vec3(other.x.z, other.y.z, other.z.z))
-      ),
-      new Vec3(
-        this.y.dot(new Vec3(other.x.x, other.y.x, other.z.x)),
-        this.y.dot(new Vec3(other.x.y, other.y.y, other.z.y)),
-        this.y.dot(new Vec3(other.x.z, other.y.z, other.z.z))
-      ),
-      new Vec3(
-        this.z.dot(new Vec3(other.x.x, other.y.x, other.z.x)),
-        this.z.dot(new Vec3(other.x.y, other.y.y, other.z.y)),
-        this.z.dot(new Vec3(other.x.z, other.y.z, other.z.z))
-      )
+      this.x.mul(other.x.x).add(this.y.mul(other.x.y)).add(this.z.mul(other.x.z)),
+      this.x.mul(other.y.x).add(this.y.mul(other.y.y)).add(this.z.mul(other.y.z)),
+      this.x.mul(other.z.x).add(this.y.mul(other.z.y)).add(this.z.mul(other.z.z))
     );
   }
 

@@ -34,7 +34,7 @@ export class Camera3D extends GNode3D {
   }
 
   enterTree() {
-    this.scene.on(Camera3D.Events.CHILD_ADDED, () => {
+    this.scene.on(Camera3D.Events.CHILD_ADDED, (node) => {
       this.geometryNodes = this.scene.getChildrenByClass(GeometryNode);
       this.lightNodes = this.scene.getChildrenByClass(PointLight);
     });
@@ -52,7 +52,7 @@ export class Camera3D extends GNode3D {
       .flatMap((geometry) => geometry.polygons.map(polygon => {
         polygon = polygon.applyTransform(geometry.globalTransform);
 
-        const polygonIsTooFar = polygon.center.sub(this.transform.position.add(this.basis.backward)).length > this.far;
+        const polygonIsTooFar = polygon.center.sub(this.position.add(this.basis.backward)).length > this.far;
         if (polygonIsTooFar) return null;
 
         // NOTE: Assuming the camera is a bit back from the original position
@@ -62,9 +62,9 @@ export class Camera3D extends GNode3D {
         if (polygonFacingAway) return null;
 
         const dotRange = Math.cos(this.fov * DEG_TO_RAD);
-        const viewV1 = polygon.v1.sub(this.transform.position).normalized;
-        const viewV2 = polygon.v2.sub(this.transform.position).normalized;
-        const viewV3 = polygon.v3.sub(this.transform.position).normalized;
+        const viewV1 = polygon.v1.sub(this.position).normalized;
+        const viewV2 = polygon.v2.sub(this.position).normalized;
+        const viewV3 = polygon.v3.sub(this.position).normalized;
         const v1OutOfFrustum = viewV1.dot(this.basis.forward) < dotRange;
         const v2OutOfFrustum = viewV2.dot(this.basis.forward) < dotRange;
         const v3OutOfFrustum = viewV3.dot(this.basis.forward) < dotRange;
@@ -118,6 +118,8 @@ export class Camera3D extends GNode3D {
     * @param { CanvasRenderingContext2D } ctx - The rendering context of the canvas
     */
   process(dt, ctx) {
+    if (Camera3D.current !== this) return;
+
     this.ctx = ctx;
     this.perspective = (ctx.canvas.height / 2) / Math.tan(this.fov * DEG_TO_RAD / 2)
 
@@ -170,6 +172,7 @@ export class Camera3D extends GNode3D {
     * @param { boolean } [doTransform=false]
     */
   drawLine(v1, v2, color = Color.WHITE, doTransform = false) {
+    if (!this.ctx) return;
     const p1 = this.toScreenSpace(v1, doTransform);
     const p2 = this.toScreenSpace(v2, doTransform);
 

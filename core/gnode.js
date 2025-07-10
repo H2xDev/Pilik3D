@@ -25,6 +25,15 @@ export class GNode {
 
   meta = {};
 
+  get root() {
+    /** @type { GNode } */
+    let node = this;
+    while (node.parent) {
+      node = node.parent;
+    }
+    return node;
+  }
+
   /** @virtual */
   enterTree() {}
   
@@ -54,7 +63,7 @@ export class GNode {
     * @param { T } child - The child node to add 
     * @returns { T } - The added child node
     */
-  addChild(child) {
+  addChild(child, debug = false) {
     assert(child instanceof GNode, "Child must be an instance of GNode");
 
     child.parent = this;
@@ -63,7 +72,7 @@ export class GNode {
     child.children.forEach(c => c.enterTree());
 
     this.trigger(GNode.Events.CHILD_ADDED, child);
-    this.parent?.trigger(GNode.Events.CHILD_ADDED, child);
+    this.root.trigger(GNode.Events.CHILD_ADDED, child);
 
     return child;
   }
