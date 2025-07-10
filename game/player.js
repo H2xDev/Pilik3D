@@ -99,8 +99,6 @@ export class Player extends GNode3D {
       return polygon;
     }
 
-    this.debug = true;
-
     window.addEventListener('mousemove', this.processMouse.bind(this));
     this.input.once(Input.Events.ANY_PRESSED, (keyCode) => {
       this.engineLoop.play()
