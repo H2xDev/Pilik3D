@@ -29,9 +29,14 @@ export class SongManager extends GNode {
     this.gain.connect(this.ctx.destination);
     await this.loadSong('/assets/music.mp3');
 
-    window.addEventListener('keydown', (event) => {
+    const handler = () => {
       this.sourceBuffer.start(0);
-    }, { once: true });
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('touchstart', handler);
+    };
+
+    window.addEventListener('keydown', handler, { once: true });
+    window.addEventListener('touchstart', handler, { once: true });
   }
 
   process() {

@@ -34,10 +34,13 @@ export class Camera3D extends GNode3D {
   }
 
   enterTree() {
-    this.scene.on(Camera3D.Events.CHILD_ADDED, (node) => {
-      this.geometryNodes = this.scene.getChildrenByClass(GeometryNode);
-      this.lightNodes = this.scene.getChildrenByClass(PointLight);
-    });
+    this.scene.on(Camera3D.Events.CHILD_ADDED, this.#updateNodes.bind(this));
+    this.scene.on(Camera3D.Events.CHILD_REMOVED, this.#updateNodes.bind(this));
+  }
+
+  #updateNodes() {
+    this.geometryNodes = this.scene.getChildrenByClass(GeometryNode);
+    this.lightNodes = this.scene.getChildrenByClass(PointLight);
   }
 
   /**
@@ -52,14 +55,16 @@ export class Camera3D extends GNode3D {
       .flatMap((geometry) => geometry.polygons.map(polygon => {
         polygon = polygon.applyTransform(geometry.globalTransform);
 
+        // NOTE: Assuming the camera is a bit back from the original position
         const polygonIsTooFar = polygon.center.sub(this.position.add(this.basis.backward)).length > this.far;
         if (polygonIsTooFar) return null;
 
-        // NOTE: Assuming the camera is a bit back from the original position
         const viewDir = polygon.center.sub(this.transform.position).normalized;
 
-        const polygonFacingAway = polygon.normal.dot(viewDir) > 0;
-        if (polygonFacingAway) return null;
+        if (!polygon.geometryNode.noBackfaceCulling) {
+          const polygonFacingAway = polygon.normal.dot(viewDir) > 0;
+          if (polygonFacingAway) return null;
+        }
 
         const dotRange = Math.cos(this.fov * DEG_TO_RAD);
         const viewV1 = polygon.v1.sub(this.position).normalized;
@@ -153,14 +158,23 @@ export class Camera3D extends GNode3D {
     const p2 = this.toScreenSpace(polygon.v2);
     const p3 = this.toScreenSpace(polygon.v3);
 
+    this.ctx.save();
+    this.ctx.globalAlpha = polygon.geometryNode.opacity;
     this.ctx.beginPath();
     this.ctx.moveTo(p1.x, p1.y);
     this.ctx.lineTo(p2.x, p2.y);
     this.ctx.lineTo(p3.x, p3.y);
     this.ctx.closePath();
     color.assign(this.ctx);
-    this.ctx.fill();
+
+    if (!polygon.geometryNode.wireframe) {
+      this.ctx.fill();
+    }
+
+    this.ctx.lineWidth = polygon.geometryNode.wireframeThickness;
+    this.ctx.lineJoin = 'round';
     this.ctx.stroke();
+    this.ctx.restore();
   }
 
 

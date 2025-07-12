@@ -2,7 +2,7 @@ import { Vec3 } from '../vec3.js';
 import { GeometryBase } from './base.js';
 
 export class CylinderGeometry extends GeometryBase {
-  constructor(radius = 1, height = 2, radialSegments = 8) {
+  constructor(radius = 1, height = 2, radialSegments = 8, offset = Vec3.ZERO) {
     super();
     this.radius = radius;
     this.height = height;
@@ -12,8 +12,8 @@ export class CylinderGeometry extends GeometryBase {
       const theta = (i / radialSegments) * Math.PI * 2;
       const x = radius * Math.cos(theta);
       const z = radius * Math.sin(theta);
-      this.vertices.push(new Vec3(x, height / 2, z));
-      this.vertices.push(new Vec3(x, -height / 2, z));
+      this.vertices.push(new Vec3(x, height / 2, z).sub(offset));
+      this.vertices.push(new Vec3(x, -height / 2, z).sub(offset));
       this.normals.push(new Vec3(x, 0, z).normalized);
       this.normals.push(new Vec3(x, 0, z).normalized);
     }
@@ -49,8 +49,8 @@ export class CylinderGeometry extends GeometryBase {
       this.normalIndices.push(bottomCenterIndex, bottomCenterIndex, bottomCenterIndex);
     }
 
-    this.vertices.push(new Vec3(0, height / 2, 0)); // Top center vertex
-    this.vertices.push(new Vec3(0, -height / 2, 0)); // Bottom center vertex
+    this.vertices.push(new Vec3(0, height / 2, 0).sub(offset)); // Top center vertex
+    this.vertices.push(new Vec3(0, -height / 2, 0).sub(offset)); // Bottom center vertex
     this.normals.push(new Vec3(0, 1, 0)); // Normal for top center vertex
     this.normals.push(new Vec3(0, -1, 0)); // Normal for bottom center vertex
   }

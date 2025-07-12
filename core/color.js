@@ -156,4 +156,8 @@ export class Color {
   clone() {
     return new Color(this.r, this.g, this.b);
   }
+
+  toString() {
+    return `rgba(${Math.round(this.r * 255)}, ${Math.round(this.g * 255)}, ${Math.round(this.b * 255)}, 1)`;
+  }
 }

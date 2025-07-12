@@ -36,6 +36,15 @@ export class GeometryNode extends GNode3D {
 
   passDepth = false;
   emissive = false;
+  wireframe = false;
+  wireframeThickness = 1.0;
+  noBackfaceCulling = false;
+  opacity = 1.0;
+
+  constructor(geometry = null) {
+    super();
+    if (geometry) this.assignGeometry(geometry);
+  }
 
   enterTree() {
     this.updateGeometry();

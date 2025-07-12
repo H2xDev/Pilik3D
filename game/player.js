@@ -26,7 +26,6 @@ export class Player extends GNode3D {
     "moveBack": "KeyS",
     "turnLeft": "KeyA",
     "turnRight": "KeyD",
-    "jump": "Space"
   })
 
   engineLoop = new GSound('/assets/reving.ogg', { loop: true, volume: 0.1 });

@@ -52,13 +52,26 @@ export class Vec3 {
   }
 
   get normalized() {
-    const len = this.length;
-    if (len === 0) return new Vec3(0, 0, 0);
-    return new Vec3(this.x / len, this.y / len, this.z / len);
+    const lenSq = this.x * this.x + this.y * this.y + this.z * this.z;
+    if (lenSq === 0) return new Vec3(0, 0, 0);
+    const invLen = 1 / Math.sqrt(lenSq);
+    return new Vec3(this.x * invLen, this.y * invLen, this.z * invLen);
   }
 
   get inverted() {
     return new Vec3(-this.x, -this.y, -this.z);
+  }
+
+  get xz() {
+    return new Vec3(this.x, 0, this.z);
+  }
+
+  get xy() {
+    return new Vec3(this.x, this.y, 0);
+  }
+
+  get yz() {
+    return new Vec3(0, this.y, this.z);
   }
 
   constructor(x = 0, y = 0, z = 0) {
@@ -121,11 +134,10 @@ export class Vec3 {
   }
 
   /**
-   * Rotates this vector around an axis by a given angle in radians.
-   * @param {Vec3} axis - The axis to rotate around.
-   * @param {number} angle - The angle in radians to rotate.
-   * @returns {Vec3} The rotated vector.
-   */
+    * Linearly interpolates between this vector and another vector.
+    * @param { Vec3 } v - The target vector.
+    * @param { number } t - The interpolation factor (0 to 1).
+    */
   lerp(v, t) {
     return new Vec3(
       this.x + (v.x - this.x) * t,
@@ -136,9 +148,9 @@ export class Vec3 {
 
   /**
    * Spherical linear interpolation between this vector and another vector.
-   * @param {Vec3} v - The target vector.
-   * @param {number} t - The interpolation factor (0 to 1).
-   * @returns {Vec3} The interpolated vector.
+   * @param { Vec3 } v - The target vector.
+   * @param { number } t - The interpolation factor (0 to 1).
+   * @returns { Vec3 } The interpolated vector.
    */
   slerp(v, t) {
     let v0 = this.normalized;
@@ -152,7 +164,7 @@ export class Vec3 {
   
     dot = Math.min(Math.max(dot, -1), 1);
   
-    const theta = Math.acos(dot);
+    const theta = Math.acos(Math.max(-1, Math.min(dot, 1)));
     const sinTheta = Math.sin(theta);
   
     if (sinTheta < 1e-6) return v0.lerp(v1, t).normalized;
@@ -162,6 +174,14 @@ export class Vec3 {
   
     return v0.mul(a).add(v1.mul(b));
   } 
+
+  distanceTo(v) {
+    return Math.sqrt(
+      (this.x - v.x) ** 2 +
+      (this.y - v.y) ** 2 +
+      (this.z - v.z) ** 2
+    );
+  }
 
   set(x, y, z) {
     this.x = x;

@@ -39,6 +39,12 @@ export class GNode {
   
   /** @virtual */
   beforeDestroy() {}
+  
+  /** @virtual */
+  gui(dt, ctx) {}
+
+  /** @virtual */
+  bg(dt, ctx) {}
 
   /** 
    * @param { number } dt - Delta time since last frame
@@ -85,11 +91,17 @@ export class GNode {
 
     const index = this.children.indexOf(child);
     if (index !== -1) {
+      child.children.forEach(c => {
+        c.beforeDestroy?.();
+        c.parent = null;
+      });
+
       child.beforeDestroy?.();
+      child.parent = null;
 
       this.children.splice(index, 1);
-      child.parent = null;
       this.trigger(GNode.Events.CHILD_REMOVED, child);
+      this.root.trigger(GNode.Events.CHILD_REMOVED, child);
     }
   }
 

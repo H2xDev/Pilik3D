@@ -5,6 +5,7 @@ import { PointLight } from "./light.js";
 export class Scene extends GNode {
   /** @type { import('./camera3d.js').Camera3D | null } */
   camera = null;
+  time = 0;
 
   geometryNodes = [];
   lightNodes = [];
@@ -29,13 +30,28 @@ export class Scene extends GNode {
    */
   gui(dt, ctx) {}
 
+  _gui(dt, ctx) {
+    const scale = ctx.canvas.width / ctx.canvas.offsetWidth;
+    const diffX = ctx.canvas.offsetWidth - ctx.canvas.width;
+
+    ctx.save();
+    // ctx.scale(scale, scale);
+    // ctx.translate(diffX / 2, 0);
+    this.gui(dt, ctx);
+    this.children.forEach(child => child.gui?.(dt, ctx));
+    ctx.restore();
+  }
+
   _process(dt, ctx) {
     this.bg(dt, ctx);
+    this.children.forEach(child => child.bg?.(dt, ctx));
+
     ctx.save();
     ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
     super._process(dt, ctx);
     ctx.restore();
-    this.gui(dt, ctx);
+    this._gui(dt, ctx);
+    this.time += dt;
   }
 
   /**
